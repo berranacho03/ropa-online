@@ -1,5 +1,6 @@
 import { Link, Navigate, Outlet, useLocation } from "react-router";
 import { INICIO_DE, getUsuario } from "../../../lib/auth";
+import { useYo } from "../../../lib/store";
 import { TABS_APP } from "../../../lib/navegacion";
 import { Toaster } from "../../ui/sonner";
 import { cn } from "../../ui/utils";
@@ -12,9 +13,14 @@ import { cn } from "../../ui/utils";
 export function AppLayout() {
   const usuario = getUsuario();
   const location = useLocation();
+  const { usuario: yo } = useYo();
 
   if (!usuario) return <Navigate to="/login" replace />;
   if (usuario.rol !== "usuario") return <Navigate to={INICIO_DE[usuario.rol]} replace />;
+
+  // Quien no cargó sus medidas pasa primero por el onboarding.
+  const enBienvenida = location.pathname.startsWith("/app/bienvenida");
+  if (yo && !yo.medidas && !enBienvenida) return <Navigate to="/app/bienvenida" replace />;
 
   const activo = (path: string) =>
     path === "/app" ? location.pathname === path : location.pathname.startsWith(path);
@@ -26,6 +32,7 @@ export function AppLayout() {
           <Outlet />
         </main>
 
+        {!enBienvenida && (
         <nav className="grid shrink-0 grid-cols-5 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
           {TABS_APP.map((tab) => {
             const act = activo(tab.path);
@@ -45,6 +52,7 @@ export function AppLayout() {
             );
           })}
         </nav>
+        )}
         <Toaster position="top-center" />
       </div>
     </div>
