@@ -23,13 +23,13 @@ export function ChipPrenda({ item, className }: { item: ItemLook; className?: st
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 rounded-2xl bg-white/95 p-1.5 pr-3 text-[var(--ink)] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.6)] ring-1 ring-black/5 backdrop-blur lg:gap-3 lg:p-2 lg:pr-4",
+        "flex items-center gap-2.5 rounded-2xl bg-white/95 p-2 pl-2.5 pr-3 sm:p-1.5 text-[var(--ink)] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.6)] ring-1 ring-black/5 backdrop-blur lg:gap-3 lg:p-2 lg:pr-4",
         className
       )}
     >
-      <PrendaIlustracion prenda={prenda} className="h-11 w-9 shrink-0 rounded-xl lg:h-14 lg:w-11" />
+      <PrendaIlustracion prenda={prenda} className="hidden h-11 w-9 shrink-0 rounded-xl sm:flex lg:h-14 lg:w-11" />
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold leading-tight lg:text-sm">{prenda.nombre}</p>
+        <p className="line-clamp-2 text-[11px] font-semibold leading-tight lg:truncate lg:text-sm">{prenda.nombre}</p>
         <p className="truncate text-[10px] leading-tight text-[var(--ink-500)] lg:mt-0.5 lg:text-xs">
           {tienda}
           <span className="hidden lg:inline"> · {money(prenda.precio)}</span>

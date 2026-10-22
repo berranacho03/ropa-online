@@ -10,7 +10,16 @@ import { USUARIOS_SEED } from "../../data/usuarios";
 import { recomendar, type Categoria } from "../../lib/talles";
 import { PERSONAS, type Puesta } from "../figura/maniqui";
 
-export const MODELO = PERSONAS[0];
+/**
+ * La modelo de la portada: la ilustración de Ana con medidas de talle
+ * medio, para que los looks muestren los talles más comunes (M, L, 40…)
+ * y no siempre los más chicos.
+ */
+export const MODELO = {
+  ...PERSONAS[0],
+  id: "modelo",
+  medidas: { ...PERSONAS[0].medidas, altura: 168, peso: 63, pecho: 94, cintura: 75, cadera: 101 },
+};
 
 export interface ItemLook {
   prenda: Prenda;
