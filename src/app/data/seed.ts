@@ -259,7 +259,7 @@ function generarVentas(usuarios: UsuarioApp[], subs: Suscripcion[]): Venta[] {
         ? DEV_BASE[prenda.categoria] * (2.1 - (rec.confianza / 100) * 1.45)
         : 0.34;
       // Tienda Norte fue la tienda piloto: sus tablas se revisaron con el equipo.
-      if (prenda.tiendaId === "norte") pDev *= 0.5;
+      if (prenda.tiendaId === "norte") pDev *= 0.72;
       if (conPrueba) pDev *= 0.75;
       // Las tiendas con molde chico confunden más a quien no sigue la recomendación.
       if (!siguio) pDev += Math.abs(tiendaById(prenda.tiendaId)!.sesgoTalle) * 0.02;
