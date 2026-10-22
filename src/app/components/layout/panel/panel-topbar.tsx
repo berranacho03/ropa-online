@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "../../ui/dropdown-menu";
 import { getUsuario, logout } from "../../../lib/auth";
-import { HOY } from "../../../data/seed";
+import { HOY } from "../../../data/azar";
 import { fechaLarga } from "../../../lib/format";
 
 export function PanelTopbar({ contexto }: { contexto: string }) {

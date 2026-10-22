@@ -4,6 +4,7 @@ import { AppLayout } from "./components/layout/app/app-layout";
 import { Portada } from "./pages/portada";
 import { Login } from "./pages/login";
 import { EnConstruccion } from "./pages/en-construccion";
+import { DevFiguras } from "./pages/dev/figuras";
 import {
   NAV_ADMIN,
   NAV_TIENDA,
@@ -34,6 +35,7 @@ const extra = (path: string, titulo: string, fase: string): RouteObject => ({
 export const router = createBrowserRouter([
   { path: "/", Component: Portada },
   { path: "/login", Component: Login },
+  { path: "/dev/figuras", Component: DevFiguras },
   {
     path: "/app",
     Component: AppLayout,
