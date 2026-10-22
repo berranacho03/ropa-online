@@ -4,7 +4,8 @@
  * Una celda vacía es una medida faltante (tabla incompleta).
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Segmentos } from "../admin/responsive";
 import { cn } from "../ui/utils";
 import { NOMBRE_ZONA, PESOS, type Categoria, type TablaTalles, type Zona } from "../../lib/talles";
 
@@ -72,6 +73,11 @@ export function TablaTallesEditor({
     onChange({ ...borrador, [t]: { ...borrador[t], [z]: par } });
   };
 
+  // En el celular se edita una zona a la vez.
+  const [zonaElegida, setZonaElegida] = useState<Zona | null>(null);
+  const zonaMovil = zonaElegida && zonas.includes(zonaElegida) ? zonaElegida : zonas[0];
+  const conError = (z: Zona) => talles.some((t) => errorDe(borrador[t]?.[z]) !== null);
+
   const errores = useMemo(() => {
     let vacias = 0;
     let invertidas = 0;
@@ -86,13 +92,30 @@ export function TablaTallesEditor({
 
   return (
     <div>
+      {zonas.length > 1 && (
+        <Segmentos
+          etiqueta="Zona a editar"
+          valor={zonaMovil}
+          onCambio={(v) => setZonaElegida(v as Zona)}
+          className="mb-2 md:hidden"
+          opciones={zonas.map((z) => ({
+            valor: z,
+            texto: (
+              <span className="inline-flex items-center gap-1">
+                {NOMBRE_ZONA[z]}
+                {conError(z) && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="con medidas faltantes" />}
+              </span>
+            ),
+          }))}
+        />
+      )}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Talle</th>
               {zonas.map((z) => (
-                <th key={z} className="px-2 py-2 text-left font-medium">
+                <th key={z} className={cn("px-2 py-2 text-left font-medium", z !== zonaMovil && "hidden md:table-cell")}>
                   {NOMBRE_ZONA[z]} <span className="font-normal">(cm)</span>
                 </th>
               ))}
@@ -106,7 +129,7 @@ export function TablaTallesEditor({
                   const par = borrador[t]?.[z] ?? ["", ""];
                   const e = errorDe(par);
                   return (
-                    <td key={z} className="px-2 py-1.5">
+                    <td key={z} className={cn("px-2 py-1.5", z !== zonaMovil && "hidden md:table-cell")}>
                       <div
                         className={cn(
                           "flex w-fit items-center gap-1 rounded-md border px-1 py-0.5",

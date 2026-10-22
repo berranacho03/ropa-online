@@ -270,7 +270,7 @@ export function AdminTiendaDetalle() {
                       </p>
                       <p className="tabular mt-1 text-xs text-muted-foreground">
                         {x.ventas} ventas · {x.pruebas} pruebas
-                        {x.ventas > 0 && ` · ${Math.round((x.dev / x.ventas) * 100)} % dev.`}
+                        {x.ventas > 0 && ` · ${Math.round((x.dev / x.ventas) * 100)}\u00a0%\u00a0dev.`}
                       </p>
                       {(!completa || p.estado !== "publicada") && (
                         <div className="mt-1 flex flex-wrap gap-1">

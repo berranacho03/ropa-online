@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Camera, ChevronLeft, ChevronRight, Crown, Repeat, Users, UserCheck } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Ficha, FiltrosMovil, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import { Chip, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { ChipPlan, MedidasOcultas, NOMBRE_PLAN } from "../../components/admin/piezas";
 import { Buscador, FiltroSelect, normalizar } from "../../components/admin/filtros";
@@ -118,8 +119,18 @@ export function AdminUsuarios() {
         </div>
 
         <Panel bodyClassName="p-0">
-          <div className="grid grid-cols-2 gap-2 border-b border-border p-4 sm:grid-cols-3 xl:grid-cols-6">
-            <Buscador valor={q} onCambio={conFiltro(setQ)} placeholder="Nombre o correo (ej. sofi)…" className="col-span-2 sm:col-span-3 sm:max-w-none xl:col-span-1" />
+          <div className="flex gap-2 border-b border-border p-4 md:grid md:grid-cols-3 xl:grid-cols-6">
+            <Buscador valor={q} onCambio={conFiltro(setQ)} placeholder="Nombre o correo (ej. sofi)…" className="sm:max-w-none md:col-span-3 xl:col-span-1" />
+            <FiltrosMovil
+              activos={[plan !== "todos", canal !== "todos", ciudad !== "todas", foto !== "todos", actividad !== "todos"].filter(Boolean).length}
+              onLimpiar={() => {
+                conFiltro(setPlan)("todos");
+                conFiltro(setCanal)("todos");
+                conFiltro(setCiudad)("todas");
+                conFiltro(setFoto)("todos");
+                conFiltro(setActividad)("todos");
+              }}
+            >
             <FiltroSelect
               etiqueta="Plan"
               valor={plan}
@@ -166,40 +177,47 @@ export function AdminUsuarios() {
                 { valor: "inactivos", texto: "Inactivos" },
               ]}
             />
+            </FiltrosMovil>
           </div>
 
           {filas.length === 0 ? (
             <Vacio icono={Users} titulo="Ningún usuario coincide" detalle="Probá con otro nombre o sacá algún filtro." />
           ) : (
             <>
-            <ul className="divide-y divide-border md:hidden">
+            <ListaFichas>
               {filas.map((u) => (
-                <li key={u.id} className="px-4 py-3" onClick={() => navigate(`/admin/usuarios/${u.id}`)}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
+                <Ficha
+                  key={u.id}
+                  onClick={() => navigate(`/admin/usuarios/${u.id}`)}
+                  titulo={
+                    <span className="flex min-w-0 items-center gap-1.5">
                       <span className="truncate">{u.nombre}</span>
                       {u.demo && <Chip className="border-[var(--brand-300)] text-[var(--brand-700)]">demo</Chip>}
-                    </p>
-                    <ChipPlan plan={planDe(planes, u.id)} />
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {u.edad} años · {u.ciudad} · {nombreCanal(u.canal)} · activo {relativo(u.ultimaActividad, HOY)}
-                  </p>
-                  <div className="mt-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="tabular">
-                      {compras.get(u.id) ?? 0} compras · {nPruebas.get(u.id) ?? 0} pruebas
+                      {u.conFoto && <Camera className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Con foto" />}
                     </span>
-                    <MedidasOcultas
-                      medidas={u.medidas}
-                      nombre={u.nombre}
-                      visibles={vistas.has(u.id)}
-                      onVer={() => setVistas((s) => new Set(s).add(u.id))}
-                    />
-                  </div>
-                </li>
+                  }
+                  subtitulo={u.email}
+                  lateral={<ChipPlan plan={planDe(planes, u.id)} />}
+                  datos={[
+                    ["Edad · ciudad", `${u.edad} · ${u.ciudad}`],
+                    ["Canal", nombreCanal(u.canal)],
+                    ["Actividad", relativo(u.ultimaActividad, HOY)],
+                    ["Compras · pruebas", <span className="tabular">{compras.get(u.id) ?? 0} · {nPruebas.get(u.id) ?? 0}</span>],
+                    [
+                      "Medidas",
+                      <MedidasOcultas
+                        medidas={u.medidas}
+                        nombre={u.nombre}
+                        visibles={vistas.has(u.id)}
+                        onVer={() => setVistas((s) => new Set(s).add(u.id))}
+                      />,
+                    ],
+                    ["Alta", <span className="tabular">{fecha(u.fechaAlta)}</span>],
+                  ]}
+                />
               ))}
-            </ul>
-            <div className="hidden overflow-x-auto md:block">
+            </ListaFichas>
+            <SoloEscritorio>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -261,7 +279,7 @@ export function AdminUsuarios() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </SoloEscritorio>
             </>
           )}
 

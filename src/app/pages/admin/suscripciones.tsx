@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { Chip, Kpi, PageBody, PageHeader, Panel } from "../../components/shell";
 import { Button } from "../../components/ui/button";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import {
   Table,
   TableBody,
@@ -303,6 +304,41 @@ export function AdminSuscripciones() {
             </Tabs>
           }
         >
+          <ListaFichas>
+            {recientes.slice(0, verTodas ? 60 : 12).map(({ s }) => {
+              const activa = subActivaEn(s, HOY) || (s.inicio === HOY && !s.fin);
+              return (
+                <Ficha
+                  key={s.id}
+                  titulo={
+                    <Link to={`/admin/usuarios/${s.usuarioId}`} className="hover:underline">
+                      {nombre.get(s.usuarioId) ?? s.usuarioId}
+                    </Link>
+                  }
+                  subtitulo={s.inicio === HOY ? <span className="text-[var(--brand-700)]">nueva hoy</span> : undefined}
+                  lateral={
+                    activa ? (
+                      <Chip className="border-[var(--brand-300)] bg-[var(--brand-50)] text-[var(--brand-700)]">Activa</Chip>
+                    ) : (
+                      <Chip className="border-border text-muted-foreground">Cancelada</Chip>
+                    )
+                  }
+                  datos={[
+                    [
+                      "Plan",
+                      <span className="tabular">
+                        <span className="capitalize">{s.plan}</span> ·{" "}
+                        {s.plan === "mensual" ? `${money(supuestos.precioMensual)}/mes` : `${money(supuestos.precioAnual)}/año`}
+                      </span>,
+                    ],
+                    ["Inicio", <span className="tabular">{fecha(s.inicio)}</span>],
+                    !activa && !!s.fin && ["Baja", <span className="tabular">{fecha(s.fin)}</span>],
+                  ]}
+                />
+              );
+            })}
+          </ListaFichas>
+          <SoloEscritorio>
           <Table>
             <TableHeader>
               <TableRow>
@@ -341,6 +377,7 @@ export function AdminSuscripciones() {
               })}
             </TableBody>
           </Table>
+          </SoloEscritorio>
           {recientes.length > 12 && (
             <div className="border-t border-border p-3 text-center">
               <Button variant="ghost" size="sm" onClick={() => setVerTodas((v) => !v)}>

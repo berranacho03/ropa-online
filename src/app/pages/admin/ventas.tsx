@@ -8,6 +8,7 @@ import { Chip, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/
 import { FilaBarra, GraficoMensual } from "../../components/admin/graficos";
 import { FiltroSelect } from "../../components/admin/filtros";
 import { descargarCsv } from "../../components/admin/piezas";
+import { Ficha, ListaFichas, Segmentos, SoloEscritorio } from "../../components/admin/responsive";
 import { fmt1, recientes, variacion } from "../../components/admin/datos";
 import { useStore } from "../../lib/store";
 import { tasaDevTalle } from "../../lib/metricas";
@@ -22,6 +23,8 @@ export function AdminVentas() {
   const { ventas, tiendas, prendas, usuarios } = useStore();
   const [mes, setMes] = useState(MES_ACTUAL);
   const [cuantas, setCuantas] = useState(25);
+  // Columna de la liquidación que se ve en el celular (un mes o el total).
+  const [colLiq, setColLiq] = useState<string | null>(null);
 
   const tiendaPor = useMemo(() => new Map(tiendas.map((t) => [t.id, t])), [tiendas]);
   const prendaPor = useMemo(() => new Map(prendas.map((p) => [p.id, p])), [prendas]);
@@ -126,6 +129,13 @@ export function AdminVentas() {
 
   const parcial = mes === MES_ACTUAL;
 
+  // Liquidación en el celular: una columna a la vez, como lista.
+  const col = colLiq === "total" || (colLiq && d.liq.meses.includes(colLiq)) ? colLiq : mes;
+  const jCol = d.liq.meses.indexOf(col);
+  const valorCol = (f: (typeof d.liq.filas)[number]) => (jCol < 0 ? f.total : f.valores[jCol]);
+  const filasCol = [...d.liq.filas].filter((f) => valorCol(f) > 0).sort((a, b) => valorCol(b) - valorCol(a));
+  const totalCol = jCol < 0 ? d.liq.totales.reduce((a, b) => a + b, 0) : d.liq.totales[jCol];
+
   return (
     <>
       <PageHeader
@@ -139,6 +149,7 @@ export function AdminVentas() {
               onCambio={(m) => {
                 setMes(m);
                 setCuantas(25);
+                setColLiq(null);
               }}
               opciones={[...MESES].reverse().map((m) => ({ valor: m, texto: mesLargo(m) + (m === MES_ACTUAL ? " (en curso)" : "") }))}
               className="sm:w-[14.5rem]"
@@ -217,7 +228,39 @@ export function AdminVentas() {
           bajada={`A cobrar por tienda, ${mesCorto(d.liq.meses[0])} a ${mesCorto(mes)}${parcial ? " (el mes en curso todavía no cerró)" : ""}`}
           bodyClassName="p-0"
         >
-          <div className="max-h-[440px] overflow-auto">
+          <div className="xl:hidden">
+            <div className="border-b border-border px-4 py-3">
+              <Segmentos
+                etiqueta="Mes de la liquidación"
+                valor={col}
+                onCambio={setColLiq}
+                opciones={[
+                  ...d.liq.meses.map((m) => ({ valor: m, texto: mesCorto(m) })),
+                  { valor: "total", texto: "Total" },
+                ]}
+              />
+            </div>
+            {filasCol.length === 0 ? (
+              <Vacio icono={HandCoins} titulo="Sin comisiones ese mes" />
+            ) : (
+              <ul className="max-h-[440px] divide-y divide-border overflow-y-auto">
+                {filasCol.map((f) => (
+                  <li key={f.tienda.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <Link to={`/admin/tiendas/${f.tienda.id}`} className="min-w-0 truncate text-sm font-medium hover:underline">
+                      {f.tienda.nombre}
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">{f.tienda.comisionPct} %</span>
+                    </Link>
+                    <span className="tabular shrink-0 text-sm">{money(valorCol(f))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center justify-between gap-3 border-t-2 border-border bg-muted/40 px-4 py-2.5 text-sm font-semibold">
+              <span>{jCol < 0 ? `Total ${mesCorto(d.liq.meses[0])} a ${mesCorto(mes)}` : `Total ${mesCorto(col)}`}</span>
+              <span className="tabular">{money(totalCol)}</span>
+            </div>
+          </div>
+          <div className="hidden max-h-[440px] overflow-auto xl:block">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow className="bg-muted/50">
@@ -273,16 +316,76 @@ export function AdminVentas() {
             <Vacio icono={ShoppingBag} titulo="Sin ventas ese mes" />
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <ListaFichas>
+                {delMes.slice(0, cuantas).map((v) => {
+                  const p = prendaPor.get(v.prendaId);
+                  const u = usuarioPor.get(v.usuarioId);
+                  return (
+                    <Ficha
+                      key={v.id}
+                      titulo={p ? nombreCompleto(p) : v.prendaId}
+                      subtitulo={
+                        <>
+                          <Link to={`/admin/tiendas/${v.tiendaId}`} className="hover:underline">
+                            {tiendaPor.get(v.tiendaId)?.nombre}
+                          </Link>{" "}
+                          · {fecha(v.fecha)}
+                        </>
+                      }
+                      lateral={
+                        <>
+                          <p className="tabular text-sm font-semibold">{money(v.precio)}</p>
+                          <div className="mt-1">
+                            {v.estado === "devuelta" ? (
+                              <Chip className="border-red-200 bg-red-50 text-red-700">
+                                Devuelta{v.motivoDevolucion === "talle" ? " · talle" : ""}
+                              </Chip>
+                            ) : (
+                              <Chip className="border-emerald-200 bg-emerald-50 text-emerald-700">Confirmada</Chip>
+                            )}
+                          </div>
+                        </>
+                      }
+                      datos={[
+                        [
+                          "Usuario",
+                          <Link to={`/admin/usuarios/${v.usuarioId}`} className="hover:underline">
+                            {u?.nombre ?? v.usuarioId}
+                          </Link>,
+                        ],
+                        ["Comisión", <span className="tabular">{money(comisionDe(v))}</span>],
+                        ["Recomendado", v.talleRecomendado],
+                        [
+                          "Compró",
+                          <span className={`inline-flex items-center gap-1 font-medium ${v.siguio ? "" : "text-amber-700"}`}>
+                            {v.talle}
+                            {v.siguio ? (
+                              <span className="inline-flex items-center gap-0.5 text-xs font-normal text-emerald-700">
+                                <Check className="h-3.5 w-3.5" /> siguió
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 text-xs font-normal">
+                                <X className="h-3.5 w-3.5" /> no siguió
+                              </span>
+                            )}
+                          </span>,
+                        ],
+                      ]}
+                    />
+                  );
+                })}
+              </ListaFichas>
+              <SoloEscritorio className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Fecha</TableHead>
                       <TableHead>Prenda</TableHead>
                       <TableHead>Usuario</TableHead>
-                      <TableHead className="text-center">Recomendado</TableHead>
-                      <TableHead className="text-center">Comprado</TableHead>
-                      <TableHead>Siguió</TableHead>
+                      <TableHead className="h-auto py-2 leading-tight">
+                        Talle
+                        <span className="block text-[11px] font-normal text-muted-foreground">recomendado → comprado</span>
+                      </TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead className="text-right">Precio</TableHead>
                       <TableHead className="text-right">Comisión</TableHead>
@@ -306,18 +409,17 @@ export function AdminVentas() {
                               {u?.nombre ?? v.usuarioId}
                             </Link>
                           </TableCell>
-                          <TableCell className="text-center">{v.talleRecomendado}</TableCell>
-                          <TableCell className="text-center font-medium">{v.talle}</TableCell>
-                          <TableCell>
-                            {v.siguio ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-700">
-                                <Check className="h-3.5 w-3.5" /> Sí
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-amber-700">
-                                <X className="h-3.5 w-3.5" /> No
-                              </span>
-                            )}
+                          <TableCell className="whitespace-nowrap">
+                            <span className="text-muted-foreground">{v.talleRecomendado}</span>
+                            <span className="mx-1 text-muted-foreground">→</span>
+                            <span className={`inline-flex items-center gap-1 font-medium ${v.siguio ? "" : "text-amber-700"}`}>
+                              {v.talle}
+                              {v.siguio ? (
+                                <Check className="h-3.5 w-3.5 text-emerald-600" aria-label="Siguió la recomendación" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" aria-label="No la siguió" />
+                              )}
+                            </span>
                           </TableCell>
                           <TableCell>
                             {v.estado === "devuelta" ? (
@@ -335,7 +437,7 @@ export function AdminVentas() {
                     })}
                   </TableBody>
                 </Table>
-              </div>
+              </SoloEscritorio>
               {delMes.length > cuantas && (
                 <div className="border-t border-border p-3 text-center">
                   <Button variant="ghost" size="sm" onClick={() => setCuantas(cuantas + 50)}>

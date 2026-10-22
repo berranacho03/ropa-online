@@ -6,7 +6,6 @@ import { Chip, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Switch } from "../../components/ui/switch";
-import { Label } from "../../components/ui/label";
 import {
   Select,
   SelectContent,
@@ -14,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { Ficha, FiltrosMovil, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import {
   Table,
   TableBody,
@@ -182,7 +182,7 @@ export function AdminCatalogo() {
 
         <Panel bodyClassName="p-0">
           <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
-            <div className="relative w-full sm:w-56">
+            <div className="relative min-w-0 flex-1 md:w-44 md:flex-none">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={q}
@@ -190,13 +190,22 @@ export function AdminCatalogo() {
                   setQ(e.target.value);
                   setLimite(POR_PAGINA);
                 }}
-                placeholder="Buscar prenda o tienda…"
+                placeholder="Prenda o tienda…"
                 className="pl-8"
               />
             </div>
-            <div className="grid w-full grid-cols-2 gap-2 sm:contents">
+            <FiltrosMovil
+              activos={[tienda !== "todas", categoria !== "todas", estado !== "todos", soloIncompletas].filter(Boolean).length}
+              onLimpiar={() => {
+                setTienda("todas");
+                setCategoria("todas");
+                setEstado("todos");
+                setSoloIncompletas(false);
+                setLimite(POR_PAGINA);
+              }}
+            >
               <Select value={tienda} onValueChange={(v) => { setTienda(v); setLimite(POR_PAGINA); }}>
-                <SelectTrigger className="w-full sm:w-[11.5rem]">
+                <SelectTrigger className="w-full md:w-auto">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -209,7 +218,7 @@ export function AdminCatalogo() {
                 </SelectContent>
               </Select>
               <Select value={categoria} onValueChange={(v) => { setCategoria(v); setLimite(POR_PAGINA); }}>
-                <SelectTrigger className="w-full sm:w-[11.5rem]">
+                <SelectTrigger className="w-full md:w-auto">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,7 +231,7 @@ export function AdminCatalogo() {
                 </SelectContent>
               </Select>
               <Select value={estado} onValueChange={(v) => { setEstado(v); setLimite(POR_PAGINA); }}>
-                <SelectTrigger className="w-full sm:w-[10.5rem]">
+                <SelectTrigger className="w-full md:w-auto">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,13 +243,11 @@ export function AdminCatalogo() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2 rounded-md px-1 py-1.5">
-                <Switch id="incompletas" checked={soloIncompletas} onCheckedChange={(v) => { setSoloIncompletas(v); setLimite(POR_PAGINA); }} />
-                <Label htmlFor="incompletas" className="whitespace-nowrap text-sm font-normal">
-                  Tabla incompleta
-                </Label>
-              </div>
-            </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5">
+                <Switch checked={soloIncompletas} onCheckedChange={(v) => { setSoloIncompletas(v); setLimite(POR_PAGINA); }} />
+                <span className="whitespace-nowrap text-sm">Tabla incompleta</span>
+              </label>
+            </FiltrosMovil>
             <p className="tabular ml-auto text-xs text-muted-foreground">
               {num(filtradas.length)} de {num(filas.length)}
             </p>
@@ -258,6 +265,55 @@ export function AdminCatalogo() {
             />
           ) : (
             <>
+              <ListaFichas>
+                {filtradas.slice(0, limite).map((f) => {
+                  const e = estadoDe(f.prenda.estado);
+                  return (
+                    <Ficha
+                      key={f.prenda.id}
+                      onClick={() => setAbierta(f.prenda.id)}
+                      inicio={<PrendaIlustracion prenda={f.prenda} className="h-12 w-10 shrink-0 rounded-md" />}
+                      titulo={nombreCompleto(f.prenda)}
+                      subtitulo={`${f.tienda} · ${money(f.prenda.precio)}`}
+                      lateral={<Chip className={e.clase}>{e.nombre}</Chip>}
+                      datos={[
+                        [
+                          "Categoría",
+                          <>
+                            {nombreCategoria(f.prenda.categoria)} ·{" "}
+                            <span className="tabular">
+                              {f.prenda.talles[0]}–{f.prenda.talles[f.prenda.talles.length - 1]}
+                            </span>
+                          </>,
+                        ],
+                        [
+                          "Tabla",
+                          f.completa ? (
+                            <span className="text-[var(--brand-700)]">Completa</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-medium text-amber-700">
+                              <AlertTriangle className="h-3.5 w-3.5" /> Incompleta
+                            </span>
+                          ),
+                        ],
+                        ["Pruebas · ventas", <span className="tabular">{num(f.pruebas)} · {num(f.ventas)}</span>],
+                        [
+                          "Dev. talle",
+                          <span
+                            className={cn(
+                              "tabular",
+                              f.ventas >= 5 && f.devTalle >= 20 ? "font-medium text-red-700" : "text-muted-foreground"
+                            )}
+                          >
+                            {f.ventas ? `${fmt1(f.devTalle, 0)} %` : "—"}
+                          </span>,
+                        ],
+                      ]}
+                    />
+                  );
+                })}
+              </ListaFichas>
+              <SoloEscritorio>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -318,6 +374,7 @@ export function AdminCatalogo() {
                   })}
                 </TableBody>
               </Table>
+              </SoloEscritorio>
               {filtradas.length > limite && (
                 <div className="border-t border-border p-3 text-center">
                   <Button variant="ghost" size="sm" onClick={() => setLimite((l) => l + POR_PAGINA * 2)}>

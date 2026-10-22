@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router";
 import { Camera, Check, MessageSquare, Target, Undo2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import { Chip, Kpi, PageBody, PageHeader, Panel } from "../../components/shell";
 import { FilaBarra, GraficoMensual } from "../../components/admin/graficos";
 import { fmt1 } from "../../components/admin/datos";
@@ -270,15 +271,30 @@ export function AdminPrecision() {
                     <span className="text-foreground">{nombre as string}</span>
                     <span className="tabular text-xs text-muted-foreground">n={x.n}</span>
                   </div>
-                  <div className="flex h-6 overflow-hidden rounded-md text-[11px] font-medium">
+                  <div className="flex h-6 overflow-hidden whitespace-nowrap rounded-md text-[11px] font-medium">
                     <div className="flex items-center justify-center bg-[var(--brand)] text-white" style={{ width: `${x.bien}%` }}>
-                      {x.bien >= 12 && `Bien ${Math.round(x.bien)} %`}
+                      {x.bien >= 12 && (
+                        <>
+                          <span className="hidden lg:inline">Bien&nbsp;</span>
+                          {Math.round(x.bien)}&nbsp;%
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center justify-center border-l-2 border-card bg-amber-400 text-amber-950" style={{ width: `${x.chico}%` }}>
-                      {x.chico >= 8 && `Chico ${Math.round(x.chico)} %`}
+                      {x.chico >= 8 && (
+                        <>
+                          <span className="hidden lg:inline">Chico&nbsp;</span>
+                          {Math.round(x.chico)}&nbsp;%
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center justify-center border-l-2 border-card bg-[var(--ink-500)] text-white" style={{ width: `${x.grande}%` }}>
-                      {x.grande >= 8 && `Grande ${Math.round(x.grande)} %`}
+                      {x.grande >= 8 && (
+                        <>
+                          <span className="hidden lg:inline">Grande&nbsp;</span>
+                          {Math.round(x.grande)}&nbsp;%
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -297,7 +313,50 @@ export function AdminPrecision() {
           bajada="Con 4 ventas o más. Una tasa alta suele indicar una tabla de talles mal cargada: revisarla con la tienda."
           bodyClassName="p-0"
         >
-          <div className="overflow-x-auto">
+          <ListaFichas>
+            {d.peores.map((x) => {
+              const p = x.prenda!;
+              return (
+                <Ficha
+                  key={p.id}
+                  inicio={<PrendaIlustracion prenda={p} className="h-11 w-9 shrink-0 rounded-md" />}
+                  titulo={nombreCompleto(p)}
+                  subtitulo={
+                    <>
+                      <Link to={`/admin/tiendas/${p.tiendaId}`} className="text-[var(--brand-700)] hover:underline">
+                        {tiendaNombre(p.tiendaId)}
+                      </Link>{" "}
+                      · {nombreCategoria(p.categoria)}
+                    </>
+                  }
+                  lateral={
+                    <>
+                      <p className="tabular text-sm font-semibold text-red-600">{Math.round(x.tasa)} %</p>
+                      <p className="text-[11px] text-muted-foreground">dev. por talle</p>
+                    </>
+                  }
+                  datos={[
+                    ["Ventas", <span className="tabular">{x.ventas} ({x.dev} dev.)</span>],
+                    [
+                      "Tabla",
+                      tablaCompleta(p) ? (
+                        <Chip className="border-border text-muted-foreground">Completa</Chip>
+                      ) : (
+                        <Chip className="border-amber-200 bg-amber-50 text-amber-700">Incompleta</Chip>
+                      ),
+                    ],
+                    [
+                      "Feedback",
+                      x.chico || x.grande
+                        ? [x.chico && `${x.chico} chico`, x.grande && `${x.grande} grande`].filter(Boolean).join(" · ")
+                        : "—",
+                    ],
+                  ]}
+                />
+              );
+            })}
+          </ListaFichas>
+          <SoloEscritorio className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -349,7 +408,7 @@ export function AdminPrecision() {
                 })}
               </TableBody>
             </Table>
-          </div>
+          </SoloEscritorio>
         </Panel>
       </PageBody>
     </>

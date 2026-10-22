@@ -15,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import {
   Table,
   TableBody,
@@ -176,13 +177,13 @@ export function AdminConfiguracion() {
               })}
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-              <Button onClick={guardar} disabled={!cambiado}>
+              <Button className="flex-1 sm:flex-none" onClick={guardar} disabled={!cambiado}>
                 <Save className="h-4 w-4" /> Guardar supuestos
               </Button>
               <Button variant="ghost" onClick={() => setBorrador(aBorrador(supuestos))} disabled={!cambiado}>
                 Descartar
               </Button>
-              <Button variant="ghost" className="sm:ml-auto" onClick={() => setBorrador(aBorrador(SUPUESTOS_DEFECTO))}>
+              <Button variant="ghost" className="w-full sm:ml-auto sm:w-auto" onClick={() => setBorrador(aBorrador(SUPUESTOS_DEFECTO))}>
                 Valores por defecto
               </Button>
             </div>
@@ -284,6 +285,21 @@ export function AdminConfiguracion() {
           </Panel>
 
           <Panel titulo="Cuentas de demostración" bodyClassName="p-0" acciones={<UserCircle2 className="h-4 w-4 text-muted-foreground" />}>
+            <ListaFichas>
+              {USUARIOS_DEMO.map((u) => (
+                <Ficha
+                  key={u.email}
+                  titulo={u.email}
+                  lateral={<code className="rounded bg-muted px-1.5 py-0.5 text-xs">{u.password}</code>}
+                  medio={
+                    <p className="-mt-1.5 text-xs text-muted-foreground">
+                      {u.nombre} · {descripcionCuenta(u)}
+                    </p>
+                  }
+                />
+              ))}
+            </ListaFichas>
+            <SoloEscritorio>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -297,7 +313,7 @@ export function AdminConfiguracion() {
                     <TableCell className="pl-4">
                       <p className="font-medium">{u.email}</p>
                       <p className="text-xs text-muted-foreground">
-                        {u.nombre} · {u.rol === "admin" ? "panel de administración" : u.rol === "tienda" ? `portal de tienda (${u.tiendaId === "bruma" ? "Bruma, en alta" : "Tienda Norte"})` : `app, ${u.cargo.toLowerCase()}`}
+                        {u.nombre} · {descripcionCuenta(u)}
                       </p>
                     </TableCell>
                     <TableCell className="pr-4">
@@ -307,6 +323,7 @@ export function AdminConfiguracion() {
                 ))}
               </TableBody>
             </Table>
+            </SoloEscritorio>
           </Panel>
         </div>
 
@@ -398,4 +415,12 @@ function Muestra({ nombre, variable, hex }: { nombre: string; variable: string; 
       </p>
     </div>
   );
+}
+
+function descripcionCuenta(u: (typeof USUARIOS_DEMO)[number]) {
+  return u.rol === "admin"
+    ? "panel de administración"
+    : u.rol === "tienda"
+      ? `portal de tienda (${u.tiendaId === "bruma" ? "Bruma, en alta" : "Tienda Norte"})`
+      : `app, ${u.cargo.toLowerCase()}`;
 }

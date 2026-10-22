@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { ArrowLeft, Camera, Check, Crown, LifeBuoy, Ruler, ShoppingBag, Sparkles, Undo2, User, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import { Chip, Dato, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { ChipPlan, MedidasOcultas } from "../../components/admin/piezas";
 import { planDe, planesPorUsuario, recientes } from "../../components/admin/datos";
@@ -165,7 +166,48 @@ export function AdminUsuarioDetalle() {
           {d.compras.length === 0 ? (
             <Vacio icono={ShoppingBag} titulo="Sin compras derivadas" />
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <ListaFichas>
+              {d.compras.map((v) => {
+                const p = d.prendaPor.get(v.prendaId);
+                return (
+                  <Ficha
+                    key={v.id}
+                    inicio={p && <PrendaIlustracion prenda={p} className="h-11 w-9 shrink-0 rounded-md" />}
+                    titulo={p ? nombreCompleto(p) : v.prendaId}
+                    subtitulo={
+                      <Link to={`/admin/tiendas/${v.tiendaId}`} className="hover:underline">
+                        {tiendaNombre(v.tiendaId)} · {fecha(v.fecha)}
+                      </Link>
+                    }
+                    lateral={
+                      v.estado === "devuelta" ? (
+                        <Chip className="border-red-200 bg-red-50 text-red-700">
+                          Devuelta {v.motivoDevolucion === "talle" ? "por talle" : "por otro motivo"}
+                        </Chip>
+                      ) : (
+                        <Chip className="border-emerald-200 bg-emerald-50 text-emerald-700">Confirmada</Chip>
+                      )
+                    }
+                    datos={[
+                      ["Recomendado", <span className="font-medium">{v.talleRecomendado}</span>],
+                      [
+                        "Compró",
+                        <span className={`inline-flex items-center gap-1 font-medium ${v.siguio ? "" : "text-amber-700"}`}>
+                          {v.talle}
+                          {v.siguio ? <Check className="h-3.5 w-3.5 text-emerald-600" aria-label="Siguió la recomendación" /> : <X className="h-3.5 w-3.5" aria-label="No la siguió" />}
+                        </span>,
+                      ],
+                      ["Precio", <span className="tabular">{money(v.precio)}</span>],
+                      ["Confianza", <span className="tabular">{v.confianza} %</span>],
+                      ["Probador", v.conPrueba ? "Se la probó" : "No la probó"],
+                      ["Feedback", v.feedback ? FEEDBACK[v.feedback] : "Sin respuesta"],
+                    ]}
+                  />
+                );
+              })}
+            </ListaFichas>
+            <SoloEscritorio className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -191,11 +233,6 @@ export function AdminUsuarioDetalle() {
                               <Link to={`/admin/tiendas/${v.tiendaId}`} className="text-xs text-muted-foreground hover:underline">
                                 {tiendaNombre(v.tiendaId)} · {money(v.precio)} · {fecha(v.fecha)}
                               </Link>
-                              <p className="text-xs md:hidden">
-                                Recomendado {v.talleRecomendado} · compró{" "}
-                                <span className={v.siguio ? "font-medium text-foreground" : "font-medium text-amber-700"}>{v.talle}</span>
-                                {v.estado === "devuelta" && <span className="text-red-600"> · devuelta</span>}
-                              </p>
                             </div>
                           </div>
                         </TableCell>
@@ -223,7 +260,8 @@ export function AdminUsuarioDetalle() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </SoloEscritorio>
+            </>
           )}
         </Panel>
 
@@ -243,7 +281,7 @@ export function AdminUsuarioDetalle() {
                     </div>
                     <p className="mt-1.5 truncate text-xs font-medium text-foreground">{nombreCompleto(r.prenda)}</p>
                     <p className="tabular text-xs text-muted-foreground">
-                      {nombreCategoria(r.prenda.categoria)} · {r.confianza} % conf.
+                      {nombreCategoria(r.prenda.categoria)} · <span className="whitespace-nowrap">{r.confianza} % conf.</span>
                     </p>
                   </li>
                 ))}

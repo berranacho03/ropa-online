@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Camera, CheckCircle2, FileCheck2, ShieldCheck, Timer } from "lucide-react";
 import { toast } from "sonner";
-import { Barra, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
+import { Barra, Chip, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { Button } from "../../components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import {
   Table,
   TableBody,
@@ -125,6 +126,56 @@ export function AdminPrivacidad() {
             {filas.length === 0 ? (
               <Vacio icono={CheckCircle2} titulo="No hay solicitudes pendientes" detalle="Todas las solicitudes se cumplieron." />
             ) : (
+              <>
+              <ListaFichas>
+                {filas.map((s) => {
+                  const transcurridos = diasEntre(s.fecha, HOY);
+                  const restan = PLAZO - transcurridos;
+                  const tardo = s.cumplida ? diasEntre(s.fecha, s.cumplida) : null;
+                  return (
+                    <Ficha
+                      key={s.id}
+                      titulo={TIPOS[s.tipo]}
+                      subtitulo={
+                        <>
+                          <Link to={`/admin/usuarios/${s.usuarioId}`} className="hover:underline">
+                            {nombre.get(s.usuarioId) ?? s.usuarioId}
+                          </Link>{" "}
+                          · pedida {fecha(s.fecha)}
+                        </>
+                      }
+                      lateral={
+                        s.estado === "pendiente" ? (
+                          <Chip className="border-amber-200 bg-amber-50 text-amber-700">Pendiente</Chip>
+                        ) : (
+                          <EstadoMeta cumple={(tardo ?? 0) <= PLAZO}>
+                            {tardo === 0 ? "En el día" : `En ${tardo} día${tardo === 1 ? "" : "s"}`}
+                          </EstadoMeta>
+                        )
+                      }
+                      medio={
+                        s.estado === "pendiente" ? (
+                          <div>
+                            <div className="flex items-baseline justify-between gap-2">
+                              <p className={cn("text-xs font-medium", restan <= 2 ? "text-red-700" : restan <= 5 ? "text-amber-700" : "text-foreground")}>
+                                {restan > 0 ? `Quedan ${restan} día${restan === 1 ? "" : "s"}` : restan === 0 ? "Vence hoy" : `Vencida hace ${-restan} días`}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">vence {fecha(addDays(s.fecha, PLAZO))}</p>
+                            </div>
+                            <Barra valor={transcurridos} max={PLAZO} alertaAlLlenar className="mt-1" />
+                            <Button size="sm" className="mt-3 w-full" onClick={() => cumplir(s)}>
+                              Marcar cumplida
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Cumplida{s.cumplida ? ` ${fecha(s.cumplida)}` : ""}</p>
+                        )
+                      }
+                    />
+                  );
+                })}
+              </ListaFichas>
+              <SoloEscritorio>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -180,6 +231,8 @@ export function AdminPrivacidad() {
                   })}
                 </TableBody>
               </Table>
+              </SoloEscritorio>
+              </>
             )}
           </Panel>
 

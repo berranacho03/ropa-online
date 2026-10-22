@@ -4,6 +4,7 @@ import { BadgePercent, Pause, Play, Rocket, Store as StoreIcon, Hourglass, Pause
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Ficha, ListaFichas, SoloEscritorio } from "../../components/admin/responsive";
 import { Barra, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { AntesAhora, ChipEstadoTienda } from "../../components/admin/piezas";
 import { Buscador, FiltroSelect, normalizar } from "../../components/admin/filtros";
@@ -117,29 +118,39 @@ export function AdminTiendas() {
             <Vacio icono={StoreIcon} titulo="No hay tiendas con ese filtro" />
           ) : (
             <>
-            <ul className="divide-y divide-border md:hidden">
+            <ListaFichas>
               {filas.map((r) => (
-                <li key={r.tienda.id}>
-                  <Link to={`/admin/tiendas/${r.tienda.id}`} className="block px-4 py-3 hover:bg-muted/50">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.tienda.color }} />
-                        <span className="truncate font-medium text-foreground">{r.tienda.nombre}</span>
-                        <span className="truncate text-xs text-muted-foreground">{r.tienda.ciudad}</span>
-                      </span>
-                      <ChipEstadoTienda estado={r.tienda.estado} />
-                    </div>
-                    <p className="tabular mt-1 text-xs text-muted-foreground">
-                      {r.prendas} prendas · {num(r.ventas)} ventas · {money(r.comisiones)} al {r.tienda.comisionPct} %
-                    </p>
-                    <div className="mt-1">
-                      <AntesAhora antes={r.devTalleAntes} ahora={r.devTalle} sinDatos={r.ventas === 0} />
-                    </div>
-                  </Link>
-                </li>
+                <Ficha
+                  key={r.tienda.id}
+                  to={`/admin/tiendas/${r.tienda.id}`}
+                  titulo={
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.tienda.color }} />
+                      <span className="truncate">{r.tienda.nombre}</span>
+                    </span>
+                  }
+                  subtitulo={
+                    <>
+                      {r.tienda.ciudad} ·{" "}
+                      {r.prendas ? (
+                        <span className={r.completas < r.prendas * 0.9 ? "font-medium text-amber-700" : ""}>
+                          tablas completas {Math.round((r.completas / r.prendas) * 100)} %
+                        </span>
+                      ) : (
+                        "sin prendas"
+                      )}
+                    </>
+                  }
+                  lateral={<ChipEstadoTienda estado={r.tienda.estado} />}
+                  datos={[
+                    ["Prendas · ventas", <span className="tabular">{r.prendas} · {num(r.ventas)}</span>],
+                    ["Comisiones", <span className="tabular">{money(r.comisiones)} <span className="text-xs text-muted-foreground">al {r.tienda.comisionPct} %</span></span>],
+                    ["Dev. por talle (antes → ahora)", <AntesAhora antes={r.devTalleAntes} ahora={r.devTalle} sinDatos={r.ventas === 0} />, true],
+                  ]}
+                />
               ))}
-            </ul>
-            <div className="hidden overflow-x-auto md:block">
+            </ListaFichas>
+            <SoloEscritorio>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -148,9 +159,12 @@ export function AdminTiendas() {
                     <TableHead className="text-right">Prendas</TableHead>
                     <TableHead className="w-[7rem]">Tabla completa</TableHead>
                     <TableHead className="text-right">Ventas</TableHead>
-                    <TableHead className="text-right">Facturación</TableHead>
+                    <TableHead className="hidden text-right 2xl:table-cell">Facturación</TableHead>
                     <TableHead className="text-right">Comisiones</TableHead>
-                    <TableHead>Dev. por talle antes → ahora</TableHead>
+                    <TableHead className="h-auto py-2 leading-tight">
+                      Dev. por talle
+                      <span className="block text-[11px] font-normal text-muted-foreground">antes → ahora</span>
+                    </TableHead>
                     <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -197,7 +211,7 @@ export function AdminTiendas() {
                           )}
                         </TableCell>
                         <TableCell className="tabular text-right font-medium">{num(r.ventas)}</TableCell>
-                        <TableCell className="tabular text-right">{money(r.gmv)}</TableCell>
+                        <TableCell className="tabular hidden text-right 2xl:table-cell">{money(r.gmv)}</TableCell>
                         <TableCell className="tabular text-right">
                           <span className="font-medium">{money(r.comisiones)}</span>
                           <span className="block text-xs text-muted-foreground">al {t.comisionPct} %</span>
@@ -234,7 +248,7 @@ export function AdminTiendas() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </SoloEscritorio>
             </>
           )}
         </Panel>

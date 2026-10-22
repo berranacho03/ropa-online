@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Lightbulb, Megaphone, Timer, UserPlus, Wallet } from "lucide-react";
 import {
   Bar,
@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { Kpi, PageBody, PageHeader, Panel } from "../../components/shell";
+import { Ficha, ListaFichas, Segmentos, SoloEscritorio } from "../../components/admin/responsive";
 import {
   Table,
   TableBody,
@@ -46,6 +47,8 @@ const PAGOS: Canal[] = ["tiktok", "instagram", "influencer", "google"];
 
 export function AdminMarketing() {
   const { usuarios, suscripciones, ventas, campanas, supuestos } = useStore();
+  // Columna de la tabla de campañas que se ve en el celular.
+  const [colCamp, setColCamp] = useState<string>("total");
 
   const canales = useMemo(
     () => marketingPorCanal({ usuarios, suscripciones, ventas, campanas, supuestos }),
@@ -180,6 +183,42 @@ export function AdminMarketing() {
           </Panel>
 
           <Panel className="lg:col-span-3" titulo="Por canal" bodyClassName="p-0">
+            <ListaFichas>
+              {[...canales]
+                .sort((a, b) => b.gasto - a.gasto)
+                .map((c) => (
+                  <Ficha
+                    key={c.canal}
+                    titulo={c.nombre}
+                    subtitulo={c.gasto ? `${money(c.gasto)} de gasto` : "sin gasto en campañas"}
+                    lateral={
+                      c.payback === null ? (
+                        <span className="text-xs text-muted-foreground">sin gasto</span>
+                      ) : (
+                        <div>
+                          <EstadoMeta cumple={c.payback <= META_PAYBACK}>{fmt1(c.payback)} m</EstadoMeta>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">payback</p>
+                        </div>
+                      )
+                    }
+                    datos={[
+                      ["Altas", <span className="tabular">{num(c.altas)}</span>],
+                      [
+                        "Premium",
+                        <span className="tabular">
+                          {num(c.premium)}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            ({c.altas ? fmt1((c.premium / c.altas) * 100) : "0"} %)
+                          </span>
+                        </span>,
+                      ],
+                      ["CAC", <span className="tabular">{c.gasto ? money(c.cac) : "$ 0"}</span>],
+                      ["ARPU/mes", <span className="tabular">{money(c.arpu)}</span>],
+                    ]}
+                  />
+                ))}
+            </ListaFichas>
+            <SoloEscritorio>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -219,6 +258,7 @@ export function AdminMarketing() {
                   ))}
               </TableBody>
             </Table>
+            </SoloEscritorio>
           </Panel>
         </div>
 
@@ -255,7 +295,7 @@ export function AdminMarketing() {
             </ResponsiveContainer>
           </Panel>
           <Panel titulo="Altas por mes" bajada="Usuarios nuevos de todos los canales, mismo período">
-            <div className="mb-3 h-[18px]" />
+            <div className="mb-3 hidden h-[18px] lg:block" />
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={d.porMes} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                 <CartesianGrid {...GRILLA} />
@@ -277,6 +317,54 @@ export function AdminMarketing() {
         </div>
 
         <Panel titulo="Campañas" bajada="Gasto por mes y canal; entre paréntesis, la campaña o influencer de ese mes" bodyClassName="p-0">
+          <div className="xl:hidden">
+            <div className="border-b border-border px-4 py-3">
+              <Segmentos
+                etiqueta="Canal"
+                valor={colCamp}
+                onCambio={setColCamp}
+                opciones={[
+                  { valor: "total", texto: "Total" },
+                  ...PAGOS.map((c) => ({ valor: c, texto: nombreCanal(c) })),
+                ]}
+              />
+            </div>
+            <ul className="divide-y divide-border">
+              {[...d.porMes].reverse().map((f) => {
+                const camp = colCamp === "total" ? [] : campanas.filter((x) => x.mes === f.mes && x.canal === colCamp);
+                const monto = colCamp === "total" ? (f.total as number) : camp.length ? (f[colCamp] as number) : 0;
+                return (
+                  <li key={f.mes as string} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium capitalize text-foreground">{f.etiqueta}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {colCamp === "total"
+                          ? `${num(f.altas as number)} altas`
+                          : camp.length
+                            ? camp.map((x) => x.nombre).join(", ")
+                            : "Sin campaña"}
+                      </p>
+                    </div>
+                    <span className={`tabular shrink-0 text-sm ${monto ? "" : "text-muted-foreground"}`}>
+                      {monto ? money(monto) : "—"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="flex items-center justify-between gap-3 border-t-2 border-border bg-muted/40 px-4 py-2.5 text-sm font-semibold">
+              <span>
+                Total
+                {colCamp === "total" && (
+                  <span className="font-normal text-muted-foreground"> · {num(d.porMes.reduce((a, f) => a + (f.altas as number), 0))} altas</span>
+                )}
+              </span>
+              <span className="tabular">
+                {money(colCamp === "total" ? d.gasto : d.porMes.reduce((a, f) => a + (f[colCamp] as number), 0))}
+              </span>
+            </div>
+          </div>
+          <SoloEscritorio>
           <Table>
             <TableHeader>
               <TableRow>
@@ -331,6 +419,7 @@ export function AdminMarketing() {
               </TableRow>
             </TableFooter>
           </Table>
+          </SoloEscritorio>
         </Panel>
       </PageBody>
     </>
