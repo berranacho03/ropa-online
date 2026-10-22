@@ -5,17 +5,18 @@ import { Toaster } from "../../ui/sonner";
 import { INICIO_DE, getUsuario } from "../../../lib/auth";
 import { NAV_ADMIN, NAV_TIENDA } from "../../../lib/navegacion";
 import { cn } from "../../ui/utils";
-import { tiendaById } from "../../../data/tiendas";
+import { useStore } from "../../../lib/store";
 
 /** Layout con sidebar, compartido por la administración y el portal de tienda. */
 export function PanelLayout({ portal }: { portal: "admin" | "tienda" }) {
   const usuario = getUsuario();
+  const { tiendas } = useStore();
 
   if (!usuario) return <Navigate to="/login" replace />;
   if (usuario.rol !== portal) return <Navigate to={INICIO_DE[usuario.rol]} replace />;
 
   const esAdmin = portal === "admin";
-  const tienda = tiendaById(usuario.tiendaId);
+  const tienda = tiendas.find((t) => t.id === usuario.tiendaId);
   const contexto = esAdmin
     ? "Plataforma completa"
     : tienda?.estado === "onboarding"

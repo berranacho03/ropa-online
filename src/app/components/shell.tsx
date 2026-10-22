@@ -104,7 +104,7 @@ export function Kpi({
         {variacion !== undefined && (
           <span
             className={cn(
-              "tabular inline-flex items-center gap-0.5 text-xs font-medium",
+              "tabular inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-medium",
               bueno === null
                 ? "text-muted-foreground"
                 : bueno

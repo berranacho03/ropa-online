@@ -130,7 +130,8 @@ function generar(): UsuarioApp[] {
       medidas: sinMedidas ? null : medidasAleatorias(r, genero),
       medidasMedidas: r() < 0.58,
       conFoto: r() < 0.41,
-      consentimiento: true,
+      // Unos pocos revocaron el consentimiento (azar aparte, para no mover el resto).
+      consentimiento: rng(`consentimiento:${i}`)() > 0.03,
     });
   }
 

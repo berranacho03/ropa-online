@@ -130,6 +130,8 @@ export interface SolicitudPrivacidad {
 
 // ── Utilidades ───────────────────────────────────────────────
 
+const minFecha = (a: string, b: string) => (a < b ? a : b);
+
 export const mesDe = (iso: string) => iso.slice(0, 7);
 
 export function mesesEntre(desde: string, hasta: string): string[] {
@@ -254,8 +256,10 @@ function generarVentas(usuarios: UsuarioApp[], subs: Suscripcion[]): Venta[] {
       const iR = prenda.talles.indexOf(rec.talle);
 
       let pDev = siguio
-        ? DEV_BASE[prenda.categoria] * (1.35 - rec.confianza / 100 * 0.55)
+        ? DEV_BASE[prenda.categoria] * (2.1 - (rec.confianza / 100) * 1.45)
         : 0.34;
+      // Tienda Norte fue la tienda piloto: sus tablas se revisaron con el equipo.
+      if (prenda.tiendaId === "norte") pDev *= 0.5;
       if (conPrueba) pDev *= 0.75;
       // Las tiendas con molde chico confunden más a quien no sigue la recomendación.
       if (!siguio) pDev += Math.abs(tiendaById(prenda.tiendaId)!.sesgoTalle) * 0.02;
@@ -343,6 +347,15 @@ function generarPruebas(usuarios: UsuarioApp[], subs: Suscripcion[], ventas: Ven
     }
   }
 
+  // Muchos Premium empezaron por la prueba de cortesía.
+  for (const s of subs) {
+    const u = umap.get(s.usuarioId);
+    if (!u?.medidas || u.demo || r() > 0.55) continue;
+    const p = elegir(r, prendasPublicadas.filter((x) => compatible(x, u.medidas!)));
+    const f = addDays(s.inicio, -entre(r, 0, 10));
+    nueva(u.id, p.id, f < u.fechaAlta ? u.fechaAlta : f, elegir(r, p.talles), true);
+  }
+
   // La prueba de cortesía de los gratuitos.
   const premium = new Set(subs.map((s) => s.usuarioId));
   for (const u of usuarios) {
@@ -414,8 +427,9 @@ function generarTickets(usuarios: UsuarioApp[]): Ticket[] {
   const activos = TIENDAS.filter((t) => t.estado !== "pausada");
   for (let i = 0; i < 46; i++) {
     const tema = elegir(r, TEMAS);
-    const fecha = addDays(HOY, -entre(r, 0, 120));
-    const abierto = diasEntre(fecha, HOY) < 4 && r() < 0.7;
+    const fecha = i < 4 ? addDays(HOY, -entre(r, 0, 2)) : addDays(HOY, -entre(r, 3, 120));
+    // Los primeros cuatro (los más recientes) quedan abiertos, sin respuesta.
+    const abierto = i < 4;
     const respuestaHoras = Math.round(Math.max(0.2, normal(r, 3.5, 2.5)) * 10) / 10;
     const autorId = tema.origen === "usuario" ? elegir(r, usuarios.filter((u) => !u.demo)).id : elegir(r, activos).id;
     out.push({
@@ -426,7 +440,7 @@ function generarTickets(usuarios: UsuarioApp[]): Ticket[] {
       categoria: tema.categoria,
       estado: abierto ? "abierto" : "resuelto",
       fecha,
-      respuestaHoras,
+      respuestaHoras: abierto ? 0 : respuestaHoras,
       mensajes: abierto
         ? [{ de: "cliente", texto: tema.cliente, fecha }]
         : [
@@ -445,14 +459,15 @@ function generarPrivacidad(usuarios: UsuarioApp[]): SolicitudPrivacidad[] {
   for (let i = 0; i < 18; i++) {
     const tipo = elegir<SolicitudPrivacidad["tipo"]>(r, ["borrar-foto", "borrar-foto", "borrar-cuenta", "exportar"]);
     const fecha = addDays(HOY, -entre(r, 0, 90));
-    const pendiente = diasEntre(fecha, HOY) < 3 && r() < 0.6;
+    // Dos solicitudes recientes quedan pendientes, para resolverlas en la demo.
+    const pendiente = i < 2 || (diasEntre(fecha, HOY) < 3 && r() < 0.6);
     out.push({
       id: `pr${i + 1}`,
       usuarioId: elegir(r, conFoto).id,
       tipo,
       fecha,
       estado: pendiente ? "pendiente" : "cumplida",
-      cumplida: pendiente ? undefined : addDays(fecha, tipo === "borrar-foto" ? 0 : entre(r, 1, 6)),
+      cumplida: pendiente ? undefined : minFecha(addDays(fecha, tipo === "borrar-foto" ? 0 : entre(r, 1, 6)), HOY),
     });
   }
   return out.sort((a, b) => b.fecha.localeCompare(a.fecha));

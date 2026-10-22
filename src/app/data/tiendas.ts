@@ -33,7 +33,7 @@ export interface Tienda {
 type Base = Omit<Tienda, "web" | "contacto">;
 
 const BASE: Base[] = [
-  { id: "norte", nombre: "Tienda Norte", estado: "activa", ciudad: "Montevideo", estilo: "urbano", comisionPct: 6, devTalleAntes: 27, sesgoTalle: 0, fechaAlta: "2025-11-04", color: "#1d1b22", descripcion: "Ropa urbana de diseño local, básicos con corte propio." },
+  { id: "norte", nombre: "Tienda Norte", estado: "activa", ciudad: "Montevideo", estilo: "urbano", comisionPct: 6, devTalleAntes: 31, sesgoTalle: -1, fechaAlta: "2025-11-04", color: "#1d1b22", descripcion: "Ropa urbana de diseño local, básicos con corte propio." },
   { id: "bruma", nombre: "Bruma", estado: "onboarding", ciudad: "Montevideo", estilo: "basicos", comisionPct: 6, devTalleAntes: 24, sesgoTalle: 1, fechaAlta: "2026-10-20", color: "#7a8a99", descripcion: "Tejidos y básicos en tonos neutros." },
   { id: "lado-b", nombre: "Lado B", estado: "activa", ciudad: "Montevideo", estilo: "vintage", comisionPct: 7, devTalleAntes: 31, sesgoTalle: -2, fechaAlta: "2025-11-18", color: "#c2410c", descripcion: "Prendas con onda retro, recuperadas y reversionadas." },
   { id: "marea", nombre: "Marea", estado: "activa", ciudad: "Punta del Este", estilo: "basicos", comisionPct: 6, devTalleAntes: 22, sesgoTalle: 1, fechaAlta: "2025-12-02", color: "#0369a1", descripcion: "Ropa liviana de verano y playa." },
