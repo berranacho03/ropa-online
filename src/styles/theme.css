@@ -1,0 +1,288 @@
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   Sistema de color — ROPA (marca provisoria)
+   Primario ............. VIOLETA  #5B3DF5
+   Complementarios ...... TINTA #111014 · BLANCO #FFFFFF
+   Los tonos --brand-* son los que usan todos los componentes.
+   El portal de tienda los redefine (.portal-tienda) para tener
+   otro acento sin tocar ningún componente.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --font-size: 16px;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+
+  /* Marca */
+  --brand: #5b3df5;
+  --brand-600: #4a2fd6;
+  --brand-700: #3a24ab;
+  --brand-300: #a897fb;
+  --brand-100: #e6e1fe;
+  --brand-50: #f4f2ff;
+  --ink: #111014;
+
+  /* Neutros de interfaz */
+  --ink-900: #111014;
+  --ink-800: #1d1b22;
+  --ink-700: #2e2b35;
+  --ink-500: #6e6a78;
+  --surface: #f6f5f8;
+  --surface-border: #e7e5ec;
+
+  /* Semánticos */
+  --ok: #1f9d6b;
+  --warn: #c98a12;
+  --danger: #d1453b;
+  --info: #2f6f9f;
+
+  --background: #f6f5f8;
+  --foreground: #1d1b22;
+  --card: #ffffff;
+  --card-foreground: #1d1b22;
+  --popover: #ffffff;
+  --popover-foreground: #1d1b22;
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-50);
+  --secondary-foreground: var(--brand-700);
+  --muted: #f6f5f8;
+  --muted-foreground: #6e6a78;
+  --accent: var(--brand-50);
+  --accent-foreground: var(--brand-700);
+  --destructive: #d1453b;
+  --destructive-foreground: #ffffff;
+  --border: #e7e5ec;
+  --input: #e7e5ec;
+  --input-background: #ffffff;
+  --switch-background: #e7e5ec;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: var(--brand);
+
+  /* Series de gráficos — verde de marca primero, luego neutros fríos */
+  --chart-1: var(--brand);
+  --chart-2: #1d1b22;
+  --chart-3: var(--brand-300);
+  --chart-4: #c98a12;
+  --chart-5: #6e6a78;
+
+  --radius: 0.75rem;
+
+  /* Navegación: negro institucional */
+  --sidebar: var(--ink);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: var(--brand);
+}
+
+.dark {
+  --background: #111014;
+  --foreground: #f6f5f8;
+  --card: #1d1b22;
+  --card-foreground: #f6f5f8;
+  --popover: #1d1b22;
+  --popover-foreground: #f6f5f8;
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: #2e2b35;
+  --secondary-foreground: #f6f5f8;
+  --muted: #2e2b35;
+  --muted-foreground: #a19dab;
+  --accent: #2e2b35;
+  --accent-foreground: #f6f5f8;
+  --destructive: #d1453b;
+  --destructive-foreground: #ffffff;
+  --border: #2e2b35;
+  --input: #2e2b35;
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: #f6f5f8;
+  --chart-3: var(--brand-300);
+  --chart-4: #e0a52c;
+  --chart-5: #a19dab;
+  --sidebar: var(--ink);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: var(--brand);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ── Scrollbar de navegación, en verde de marca ── */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand) transparent;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--brand);
+  border-radius: 2px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-600);
+}
+
+/* ── Scrollbar general, discreta ── */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d1db transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #d4d1db;
+  border-radius: 3px;
+}
+
+/* ── Trama de la marca: usada en cabeceras y en el login ── */
+.ropa-grid {
+  background-image:
+    linear-gradient(rgba(91, 61, 245, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 61, 245, 0.10) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "tnum" 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Cifras alineadas en tablas y KPIs. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
+
+/* ── Portal de tienda: mismo sistema, acento turquesa ── */
+.portal-tienda {
+  --brand: #0e9384;
+  --brand-600: #0b7a6e;
+  --brand-700: #095f56;
+  --brand-300: #6fd3c6;
+  --brand-100: #d3f3ef;
+  --brand-50: #effbf9;
+  /* Las variables que derivan de --brand se resuelven en :root;
+     hay que volver a declararlas para que tomen el acento nuevo. */
+  --primary: var(--brand);
+  --ring: var(--brand);
+  --secondary: var(--brand-50);
+  --secondary-foreground: var(--brand-700);
+  --accent: var(--brand-50);
+  --accent-foreground: var(--brand-700);
+  --chart-1: var(--brand);
+  --chart-3: var(--brand-300);
+  --sidebar-primary: var(--brand);
+  --sidebar-ring: var(--brand);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
