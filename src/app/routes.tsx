@@ -109,4 +109,7 @@ export const router = createBrowserRouter([
       { path: "configuracion", Component: AdminConfiguracion },
     ],
   },
-]);
+], {
+  // Respeta la subcarpeta de GitHub Pages (vite `base`).
+  basename: import.meta.env.BASE_URL.replace(/\/$/, "") || "/",
+});

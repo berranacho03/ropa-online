@@ -286,8 +286,12 @@ Se generan **una sola vez**, antes de construir, y quedan como archivos en
 4. Las mismas imágenes de una de las personas sirven para la **portada animada**
    (sección 3 bis), recortadas con fondo transparente.
 
-Mientras esas imágenes no estén, la app usa imágenes provisorias (siluetas
-ilustradas) y todo el flujo funciona igual: se reemplazan los archivos y listo.
+Mientras esas imágenes no estén, la app usa **ilustraciones en SVG**
+(`src/app/components/figura/`): tres personas tipo figurín (Ana, Tomás y Mía)
+y cada prenda dibujada según su categoría, color, estampa y calce. La prenda se
+dibuja con la holgura que calcula el recomendador, así un talle chico se ve
+tirante y uno grande con aire. Cuando estén las imágenes, se reemplazan y el
+flujo sigue igual.
 
 El costo y la latencia que muestra el admin en *Probador virtual / costos de IA*
 siguen siendo **datos generados**, calibrados con los precios públicos de los
@@ -302,9 +306,9 @@ Igual que Sinergia: un **PRNG sembrado por string**, fecha fija
 
 | Entidad | Cantidad | Origen |
 |---|---|---|
-| Tiendas | ~40 detalladas (las cifras agregadas de la red se escalan a 214) | De ejemplo, nombres ficticios |
-| Prendas | ~300, con tabla de talles | De ejemplo; fotos de stock con licencia libre |
-| Usuarios | ~800 detallados (agregados escalados a ~42.000 activos/mes) | Generados |
+| Tiendas | 42 (37 activas, 3 en alta, 2 pausadas) | De ejemplo, nombres ficticios |
+| Prendas | ~390, con tabla de talles | Generadas; ilustradas en SVG |
+| Usuarios | 2.400 (más las 3 cuentas demo), sin escalar | Generados |
 | Recomendaciones, pruebas, ventas, devoluciones, suscripciones | 12 meses de historia | Generados |
 | Campañas de marketing | ~25 (canales e influencers ficticios) | Generados |
 | Tickets de soporte, solicitudes de privacidad | Pocas decenas | Generados |
