@@ -30,7 +30,7 @@ export interface PrendaDibujo {
 
 // px de medio ancho por cm de holgura. Exagerado a propósito (como un
 // figurín) para que la diferencia entre talles se vea a simple vista.
-const PX = 0.95;
+const PX = 1.25;
 
 type P = [number, number];
 
@@ -98,7 +98,7 @@ function superior(ctx: Ctx): ReactNode {
   const ruedo = Math.max(c.cadera * 0.96, cintura) + (over ? e * 0.4 + 4 : e * 0.25);
   const yRuedo = corto
     ? Y.cintura - 8
-    : (cat === "campera" ? 262 : cat === "camisa" ? 268 : 258) + h.largo * 22 + (over ? 10 : 0);
+    : (cat === "campera" ? 262 : cat === "camisa" ? 268 : 258) + h.largo * 22 + (over ? 4 : 0);
   const yHombro = Y.hombro + (over ? 6 : 0);
   const mangaLarga =
     cat === "buzo" || cat === "campera" || nombre.includes("manga larga") || (cat === "camisa" && !nombre.includes("manga corta"));

@@ -73,8 +73,7 @@ Se copia la base y se reemplaza el dominio:
 talles, el probador virtual simulado y el motor de datos.
 
 **Stack:** Vite 6 · React 18 · TypeScript · react-router 7 · Tailwind 4 ·
-shadcn/ui · Recharts · lucide-react · sonner · MediaPipe Pose (sólo para el
-probador en vivo). Sin backend.
+shadcn/ui · Recharts · lucide-react · sonner. Sin backend.
 
 ---
 
@@ -259,7 +258,7 @@ la prenda puesta:
 |---|---|---|---|
 | **1. Foto de ejemplo** | Elige una de las 3 personas demo (o «usar mi foto guardada» en las cuentas demo) | Muestra el resultado **pregenerado con IA** para esa persona y esa prenda, después de la animación «Probándote la prenda… 6 s» | Realista: es la imagen que daría el producto real |
 | **2. Subir tu foto** | Sube una foto de cuerpo entero | La prenda (PNG recortado) se **superpone** sobre la foto, ubicada y escalada según el talle elegido; se puede ajustar arrastrando | Creíble pero claramente una aproximación |
-| **3. En vivo** | Activa la cámara | Detecta hombros y cadera **en el propio navegador** (MediaPipe Pose, gratis, sin internet) y la prenda sigue el cuerpo mientras te movés | Efecto «espejo»: lo más llamativo para la presentación |
+| **3. En vivo** | Activa la cámara | Muestra la cámara espejada con la prenda superpuesta, que se acomoda arrastrando y con un control de tamaño. (Seguir el cuerpo con detección de pose, por ejemplo MediaPipe, queda como mejora futura.) | Efecto «espejo»: lo más llamativo para la presentación |
 
 El camino 1 es el que se usa en el guion de la demo, porque es el que mejor
 muestra la promesa del producto. El 2 y el 3 demuestran que el flujo de «subís

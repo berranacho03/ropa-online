@@ -3,7 +3,6 @@ import { PanelLayout } from "./components/layout/panel/panel-layout";
 import { AppLayout } from "./components/layout/app/app-layout";
 import { Portada } from "./pages/portada";
 import { Login } from "./pages/login";
-import { DevFiguras } from "./pages/dev/figuras";
 
 // App de usuario
 import { Bienvenida } from "./pages/app/bienvenida";
@@ -52,7 +51,6 @@ import { AdminConfiguracion } from "./pages/admin/configuracion";
 export const router = createBrowserRouter([
   { path: "/", Component: Portada },
   { path: "/login", Component: Login },
-  { path: "/dev/figuras", Component: DevFiguras },
   {
     path: "/app",
     Component: AppLayout,

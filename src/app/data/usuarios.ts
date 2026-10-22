@@ -148,7 +148,8 @@ function generar(): UsuarioApp[] {
       canal: "influencer",
       medidas: { altura: 165, peso: 57, pecho: 87, cintura: 67, cadera: 94, genero: "mujer", preferencia: "regular" },
       medidasMedidas: true,
-      conFoto: true,
+      // Sin foto guardada: en la demo se sube en vivo desde el probador.
+      conFoto: false,
       consentimiento: true,
       demo: true,
     },
