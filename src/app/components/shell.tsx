@@ -88,11 +88,11 @@ export function Kpi({
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="min-w-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {etiqueta}
         </p>
         {Icono && (
-          <span className={cn("rounded-lg p-1.5", acentoClase)}>
+          <span className={cn("shrink-0 rounded-lg p-1.5", acentoClase)}>
             <Icono className="h-4 w-4" />
           </span>
         )}

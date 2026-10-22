@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Outlet } from "react-router";
 import { PanelSidebar } from "./panel-sidebar";
 import { PanelTopbar } from "./panel-topbar";
@@ -11,6 +12,14 @@ import { useStore } from "../../../lib/store";
 export function PanelLayout({ portal }: { portal: "admin" | "tienda" }) {
   const usuario = getUsuario();
   const { tiendas } = useStore();
+
+  // Menús, diálogos y hojas se montan en <body>, fuera de este layout:
+  // para que tomen el acento turquesa, la clase del portal va en el body.
+  useEffect(() => {
+    if (portal !== "tienda") return;
+    document.body.classList.add("portal-tienda");
+    return () => document.body.classList.remove("portal-tienda");
+  }, [portal]);
 
   if (!usuario) return <Navigate to="/login" replace />;
   if (usuario.rol !== portal) return <Navigate to={INICIO_DE[usuario.rol]} replace />;

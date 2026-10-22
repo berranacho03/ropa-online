@@ -84,13 +84,13 @@ Si cambiás tus medidas en el perfil, cambian todas las recomendaciones.
 
 ## El probador virtual
 
-No llama a ninguna IA y no tiene costo por uso; la foto nunca sale del
-navegador. Tiene tres modos:
+No llama a ningún servicio de IA y no tiene costo por uso; la foto y la cámara
+nunca salen del navegador. Tiene tres modos:
 
 - **Persona de ejemplo:** muestra a la persona con la prenda en el talle
   elegido. Un talle chico se ve tirante y uno grande, con aire.
 - **Tu foto:** la prenda se superpone sobre tu foto (vista aproximada).
-- **En vivo:** la cámara, con la prenda superpuesta.
+- **En vivo:** la cámara, con la prenda que sigue el cuerpo (detección de pose en el navegador con MediaPipe; el modelo se descarga la primera vez).
 
 Las personas y las prendas son ilustraciones en SVG
 (`src/app/components/figura/`). Si el grupo genera imágenes con IA, se
