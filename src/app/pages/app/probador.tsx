@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import {
@@ -30,11 +30,14 @@ import {
   useFavoritos,
 } from "../../components/app/comun";
 import { ComprarDialog } from "../../components/app/comprar";
-import { Superpuesta } from "../../components/app/superpuesta";
+import { Superpuesta, type AjusteFino } from "../../components/app/superpuesta";
+import { aPantalla, ajustePara, cargarDetector, suavizar, transformDe, type Ajuste, type Detector } from "../../components/app/pose";
+import { cuerpoDe } from "../../components/figura/cuerpo";
+import { DibujoPrenda } from "../../components/figura/prendas-svg";
 import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
 import { useStore, usePrendasVisibles, useYo } from "../../lib/store";
-import { evaluarTalle, recomendar, type Medidas } from "../../lib/talles";
+import { ES_INFERIOR, evaluarTalle, holgura, recomendar, type Medidas } from "../../lib/talles";
 import { money } from "../../lib/format";
 import type { Prenda } from "../../data/prendas";
 import { cn } from "../../components/ui/utils";
@@ -207,6 +210,7 @@ export function Probador() {
               puedeProbar={puedeProbar}
               onActiva={(lat) => terminar("vivo", lat)}
               onComprar={() => setComprar(true)}
+              onCambiarModo={setModo}
             />
           )}
 
@@ -722,6 +726,11 @@ function ModoFoto({
 
 // ── Modo 3: en vivo ─────────────────────────────────────────
 
+type Seguimiento = "cargando" | "buscando" | "siguiendo" | "sin-detector";
+
+/** Tiempo sin ver el cuerpo antes de volver a la prenda manual. */
+const PERDIDA_MS = 1000;
+
 function ModoVivo({
   prenda,
   talle,
@@ -731,6 +740,7 @@ function ModoVivo({
   puedeProbar,
   onActiva,
   onComprar,
+  onCambiarModo,
 }: {
   prenda: Prenda;
   talle: string;
@@ -740,11 +750,30 @@ function ModoVivo({
   puedeProbar: boolean;
   onActiva: (latenciaMs: number) => void;
   onComprar: () => void;
+  onCambiarModo: (m: Modo) => void;
 }) {
+  const [params] = useSearchParams();
+  // Sólo en desarrollo: ?fuente=<url de video o imagen> reemplaza a la cámara para probar el seguimiento.
+  const fuenteDev = import.meta.env.DEV ? params.get("fuente") : null;
+  const fuenteEsImagen = !!fuenteDev && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(fuenteDev);
+
   const [estado, setEstado] = useState<"apagada" | "pidiendo" | "activa" | "error">("apagada");
   const [error, setError] = useState("");
+  const [seg, setSeg] = useState<Seguimiento>("cargando");
   const video = useRef<HTMLVideoElement>(null);
+  const imagen = useRef<HTMLImageElement>(null);
   const stream = useRef<MediaStream | null>(null);
+  const capa = useRef<SVGGElement | null>(null);
+  const suave = useRef<Ajuste | null>(null);
+  const fino = useRef<AjusteFino>({ dx: 0, dy: 0, escala: 1 });
+  const uid = useId().replace(/:/g, "");
+
+  const inferior = ES_INFERIOR[prenda.categoria];
+  const cuerpo = useMemo(() => cuerpoDe(medidas), [medidas]);
+  const aire = useMemo(() => holgura(prenda.tabla, prenda.categoria, talle, medidas), [prenda, talle, medidas]);
+  // El bucle lee los datos de la prenda actual sin reiniciarse.
+  const datos = useRef({ categoria: prenda.categoria, inferior, cuerpo });
+  datos.current = { categoria: prenda.categoria, inferior, cuerpo };
 
   const apagar = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -759,7 +788,105 @@ function ModoVivo({
     }
   }, [estado]);
 
+  // Detector de pose + bucle de seguimiento, mientras la cámara está activa.
+  useEffect(() => {
+    if (estado !== "activa") return;
+    let vivo = true;
+    let raf = 0;
+    let detector: Detector | null = null;
+    let ultimoTiempo = -1;
+    let ultimaDeteccion = 0;
+    let ultimaVezVisto = 0;
+    let siguiendo = false;
+    suave.current = null;
+    setSeg("cargando");
+
+    const paso = () => {
+      raf = requestAnimationFrame(paso);
+      const d = detector;
+      const v = video.current;
+      const img = imagen.current;
+      const el = v ?? img;
+      const caja = el?.parentElement;
+      if (!d || !el || !caja) return;
+
+      const ahora = performance.now();
+      let fuente: { ancho: number; alto: number };
+      if (v) {
+        if (v.readyState < 2 || !v.videoWidth || v.currentTime === ultimoTiempo) return;
+        ultimoTiempo = v.currentTime;
+        fuente = { ancho: v.videoWidth, alto: v.videoHeight };
+      } else {
+        if (!img!.complete || !img!.naturalWidth || ahora - ultimaDeteccion < 66) return;
+        fuente = { ancho: img!.naturalWidth, alto: img!.naturalHeight };
+      }
+      ultimaDeteccion = ahora;
+
+      let lms;
+      try {
+        lms = d.detectForVideo(el, ahora).landmarks[0];
+      } catch {
+        return;
+      }
+      const box = { ancho: caja.clientWidth, alto: caja.clientHeight };
+      const { categoria, inferior: inf, cuerpo: c } = datos.current;
+      const r = lms ? ajustePara(lms, categoria, inf, c, (lm) => aPantalla(lm, fuente, box, true)) : null;
+
+      if (r?.ajuste) {
+        suave.current = suavizar(suave.current, r.ajuste);
+        ultimaVezVisto = ahora;
+        if (!siguiendo) {
+          siguiendo = true;
+          setSeg("siguiendo");
+        }
+        aplicar(box);
+      } else if (siguiendo && ahora - ultimaVezVisto > PERDIDA_MS) {
+        siguiendo = false;
+        suave.current = null;
+        setSeg("buscando");
+      }
+    };
+
+    cargarDetector()
+      .then((d) => {
+        if (!vivo) {
+          d.close();
+          return;
+        }
+        detector = d;
+        setSeg("buscando");
+        raf = requestAnimationFrame(paso);
+      })
+      .catch(() => {
+        if (vivo) setSeg("sin-detector");
+      });
+
+    return () => {
+      vivo = false;
+      cancelAnimationFrame(raf);
+      detector?.close();
+      detector = null;
+      suave.current = null;
+    };
+  }, [estado]);
+
+  /** Lleva la transformación suavizada (más el ajuste fino) a la capa SVG. */
+  function aplicar(box?: { ancho: number; alto: number }) {
+    const g = capa.current;
+    const a = suave.current;
+    const caja = g?.ownerSVGElement;
+    if (!g || !a || !caja) return;
+    const b = box ?? { ancho: caja.clientWidth, alto: caja.clientHeight };
+    const f = fino.current;
+    g.setAttribute("transform", transformDe(a, { escala: f.escala, dx: (f.dx / 100) * b.ancho, dy: (f.dy / 100) * b.alto }));
+  }
+
   async function activar() {
+    if (fuenteDev) {
+      setEstado("activa");
+      onActiva(0);
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Este navegador no permite usar la cámara (hace falta HTTPS o un navegador más nuevo).");
       setEstado("error");
@@ -783,6 +910,39 @@ function ModoVivo({
   }
 
   if (estado === "activa") {
+    const fondo = fuenteEsImagen ? (
+      <img
+        ref={imagen}
+        src={fuenteDev!}
+        crossOrigin="anonymous"
+        alt="Fuente de prueba"
+        draggable={false}
+        className="absolute inset-0 h-full w-full -scale-x-100 object-cover"
+      />
+    ) : (
+      <video
+        ref={video}
+        playsInline
+        muted
+        {...(fuenteDev ? { src: fuenteDev, crossOrigin: "anonymous" as const, autoPlay: true, loop: true } : {})}
+        className="absolute inset-0 h-full w-full -scale-x-100 object-cover"
+      />
+    );
+
+    const pista =
+      seg === "cargando"
+        ? { punto: "bg-white/70 animate-pulse", texto: "Cargando el detector…" }
+        : seg === "siguiendo"
+          ? { punto: "bg-emerald-400", texto: "Seguimiento activo" }
+          : seg === "buscando"
+            ? {
+                punto: "bg-amber-400 animate-pulse",
+                texto: inferior
+                  ? "Ponete de frente, que se vea de la cadera a los pies"
+                  : "Ponete de frente, que se vea de la cabeza a la cadera",
+              }
+            : { punto: "bg-white/60", texto: "Acomodá la prenda a mano" };
+
     return (
       <div className="mt-4">
         <Superpuesta
@@ -790,15 +950,53 @@ function ModoVivo({
           talle={talle}
           medidas={medidas}
           posInicial={{ x: 50, y: 58 }}
-          fondo={
-            <video ref={video} playsInline muted className="absolute inset-0 h-full w-full -scale-x-100 object-cover" />
+          fondo={fondo}
+          ajusteFino={fino}
+          aviso={
+            <span
+              role="status"
+              className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur"
+            >
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", pista.punto)} />
+              {pista.texto}
+            </span>
+          }
+          seguida={
+            seg === "siguiendo" ? (
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.35))" }}
+                aria-label={`${prenda.nombre}, talle ${talle}`}
+              >
+                <g
+                  ref={(g) => {
+                    capa.current = g;
+                    if (g) aplicar();
+                  }}
+                  opacity={0.95}
+                >
+                  <DibujoPrenda prenda={prenda} cuerpo={cuerpo} holgura={aire} uid={uid} />
+                </g>
+              </svg>
+            ) : undefined
           }
         />
+        {seg === "sin-detector" && (
+          <div className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
+            <p className="font-bold">No pudimos cargar el detector de cuerpo</p>
+            <p className="mt-0.5">
+              Puede ser la conexión a internet. Mientras tanto, arrastrá la prenda y usá el control de tamaño para acomodarla sobre vos.
+            </p>
+          </div>
+        )}
         <div className="mt-3 rounded-2xl bg-card p-3 ring-1 ring-border">
           <ChipsTalle prenda={prenda} talle={talle} recTalle={recTalle} onChange={setTalle} />
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Vista aproximada en vivo. El video se procesa en tu navegador y no se graba ni se envía a ningún lado.
+          {seg === "siguiendo"
+            ? "La prenda sigue tu cuerpo y cambia de ancho con el talle. Si querés, arrastrala o ajustá el tamaño para afinar."
+            : "Vista aproximada en vivo."}{" "}
+          El video se procesa en tu navegador y no se graba ni se envía a ningún lado.
         </p>
         <div className="mt-4 flex gap-2">
           <Button
@@ -827,10 +1025,20 @@ function ModoVivo({
         </span>
         <p className="mt-3 font-display text-lg font-bold">No pudimos abrir la cámara</p>
         <p className="mt-1 text-sm text-muted-foreground">{error}</p>
-        <p className="mt-3 text-xs text-muted-foreground">Mientras tanto, probá con una persona de ejemplo o con tu foto.</p>
-        <Button variant="outline" className="mt-5 rounded-xl" onClick={activar}>
-          Reintentar
-        </Button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Sin cámara no hay seguimiento en vivo, pero podés probártela igual con tu foto (y acomodar la prenda a mano) o con una persona de ejemplo.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <Button className="rounded-xl" onClick={() => onCambiarModo("foto")}>
+            <ImagePlus className="h-4 w-4" /> Usar mi foto
+          </Button>
+          <Button variant="outline" className="rounded-xl" onClick={() => onCambiarModo("ejemplo")}>
+            <Users className="h-4 w-4" /> Persona de ejemplo
+          </Button>
+          <Button variant="ghost" className="rounded-xl" onClick={activar}>
+            <RefreshCw className="h-4 w-4" /> Reintentar
+          </Button>
+        </div>
       </div>
     );
   }
@@ -848,7 +1056,10 @@ function ModoVivo({
             <Video className="h-7 w-7" />
           </span>
           <p className="mt-4 font-display text-xl font-bold">Probátela frente al espejo</p>
-          <p className="mt-1 text-sm text-white/70">Activá la cámara y la prenda aparece sobre vos. Alejate hasta que se vea tu torso.</p>
+          <p className="mt-1 text-sm text-white/70">
+            Activá la cámara y la prenda sigue tu cuerpo en tiempo real.{" "}
+            {inferior ? "Alejate hasta que se vean la cadera y las piernas." : "Alejate hasta que se vea de la cabeza a la cadera."}
+          </p>
           <Button
             className="mt-5 h-11 rounded-2xl bg-white px-6 font-bold text-[var(--ink)] hover:bg-white/90"
             onClick={activar}
