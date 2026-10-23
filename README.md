@@ -117,7 +117,8 @@ demostración** (admin).
 ## Stack
 
 Vite 6 · React 18 · TypeScript · react-router 7 · Tailwind 4 · shadcn/ui ·
-Recharts · lucide-react · sonner. Sin backend.
+Recharts · lucide-react · sonner · MediaPipe Tasks Vision (pose del probador en
+vivo, se carga sólo al usarlo). Sin backend.
 
 ```
 src/app/
