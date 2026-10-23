@@ -32,6 +32,7 @@ import {
   statsPorPrenda,
   useDatosTienda,
 } from "../../components/tienda/comun";
+import { LISTA_TARJETAS } from "../../components/tienda/movil";
 import { useStore } from "../../lib/store";
 import { tasaDevTalle } from "../../lib/metricas";
 import { HOY, MESES, MES_ACTUAL, comisionDe, mesDe } from "../../data/seed";
@@ -145,7 +146,7 @@ function Tablero({ tienda }: { tienda: Tienda }) {
           titulo="Devoluciones por talle: antes y después de sumarte"
           bajada="Antes: lo que nos contaste en el alta. Ahora: calculado con tus ventas que llegaron desde la app."
         >
-          <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center">
             <div className="flex items-end gap-4 sm:gap-6">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Antes</p>
@@ -244,6 +245,37 @@ function Tablero({ tienda }: { tienda: Tienda }) {
           {ventas.length === 0 ? (
             <Vacio icono={ShoppingBag} titulo="Todavía no hay ventas" detalle="Cuando alguien compre una de tus prendas desde la app, aparece acá." />
           ) : (
+            <>
+            <ul className={LISTA_TARJETAS}>
+              {ventas.slice(0, 6).map((v) => {
+                const p = porId.get(v.prendaId);
+                return (
+                  <li key={v.id} className="flex gap-3 px-4 py-3">
+                    {p && <PrendaIlustracion prenda={p} className="h-12 w-10 shrink-0 rounded-md" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium leading-snug">{p ? nombreCompleto(p) : v.prendaId}</p>
+                        <p className="tabular shrink-0 text-sm font-semibold">{money(v.precio)}</p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {fecha(v.fecha)} · talle <span className="font-semibold text-foreground">{v.talle}</span>
+                        {v.siguio ? (
+                          <span className="text-[var(--brand-700)]"> · recomendado</span>
+                        ) : (
+                          <> · le sugerimos {v.talleRecomendado}</>
+                        )}
+                      </p>
+                      {v.estado === "devuelta" && (
+                        <Chip className="mt-1.5 border-orange-200 bg-orange-50 text-orange-800">
+                          Devuelta{v.motivoDevolucion === "talle" ? " · talle" : ""}
+                        </Chip>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden xl:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -284,6 +316,8 @@ function Tablero({ tienda }: { tienda: Tienda }) {
                 })}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </Panel>
       </PageBody>
@@ -298,7 +332,7 @@ function RecienPublicada({ tienda, prendas }: { tienda: Tienda; prendas: Prenda[
       titulo="Tu tienda ya está en la app"
       bajada="Cuando lleguen las primeras ventas vas a ver acá cuánto bajan tus devoluciones por talle."
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Devolución por talle antes de sumarte</p>
           <p className="tabular font-display text-5xl font-semibold text-slate-500">{pct(tienda.devTalleAntes)}</p>
@@ -408,7 +442,7 @@ function Alta({ tienda }: { tienda: Tienda }) {
         bajada="Tres pasos y tus prendas aparecen en la app con la recomendación de talle. Te lleva unos minutos."
       />
       <PageBody className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <Panel titulo="Alta de tu tienda" bajada={`${hechos} de 4 pasos completos`}>
             <div className="mb-5 h-2 w-full overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-[var(--brand)] transition-all" style={{ width: `${(hechos / 4) * 100}%` }} />
@@ -418,13 +452,13 @@ function Alta({ tienda }: { tienda: Tienda }) {
                 <li
                   key={p.titulo}
                   className={cn(
-                    "flex items-center gap-4 rounded-xl border p-4",
+                    "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-xl border p-4 sm:flex",
                     p.hecho ? "border-[var(--brand-100)] bg-[var(--brand-50)]" : "border-border"
                   )}
                 >
                   <span
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                      "flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full text-sm font-semibold sm:self-center",
                       p.hecho ? "bg-[var(--brand)] text-white" : "bg-muted text-muted-foreground"
                     )}
                   >
@@ -432,22 +466,22 @@ function Alta({ tienda }: { tienda: Tienda }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{p.titulo}</p>
-                    <p className="truncate text-sm text-muted-foreground">{p.detalle}</p>
+                    <p className="text-sm text-muted-foreground sm:truncate">{p.detalle}</p>
                   </div>
-                  <Button asChild size="sm" variant={p.hecho ? "ghost" : "default"}>
+                  <Button asChild size="sm" variant={p.hecho ? "ghost" : "default"} className={cn("col-start-2 justify-self-start", p.hecho && "max-sm:-ml-3")}>
                     <Link to={p.to}>{p.accion}</Link>
                   </Button>
                 </li>
               ))}
               <li
                 className={cn(
-                  "flex items-center gap-4 rounded-xl border-2 border-dashed p-4",
+                  "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-xl border-2 border-dashed p-4 sm:flex",
                   listo ? "border-[var(--brand)]" : "border-border"
                 )}
               >
                 <span
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                    "flex h-9 w-9 shrink-0 items-center justify-center self-start rounded-full text-sm font-semibold sm:self-center",
                     listo ? "bg-[var(--brand-100)] text-[var(--brand-700)]" : "bg-muted text-muted-foreground"
                   )}
                 >
@@ -459,7 +493,7 @@ function Alta({ tienda }: { tienda: Tienda }) {
                     {listo ? "Todo listo: al publicar, tus prendas aparecen en la app." : "Se habilita cuando completes los pasos anteriores."}
                   </p>
                 </div>
-                <Button disabled={!listo} onClick={publicar}>
+                <Button disabled={!listo} onClick={publicar} className="col-span-2 sm:shrink-0">
                   <PartyPopper className="mr-2 h-4 w-4" /> Publicar mi tienda
                 </Button>
               </li>

@@ -114,7 +114,7 @@ export function Premium() {
         </div>
 
         <AlertDialog open={cancelar} onOpenChange={setCancelar}>
-          <AlertDialogContent className="max-w-[340px] rounded-3xl">
+          <AlertDialogContent className="max-w-[min(340px,calc(100%-2rem))] rounded-3xl">
             <AlertDialogHeader>
               <AlertDialogTitle>¿Cancelar Premium?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -211,7 +211,7 @@ export function Premium() {
           setCheckout(v);
           if (!v && estado === "ok") setEstado("form");
         }}>
-        <DialogContent className="max-w-[360px] rounded-3xl sm:max-w-[360px]">
+        <DialogContent className="max-w-[min(360px,calc(100%-2rem))] rounded-3xl sm:max-w-[360px]">
           {estado === "ok" ? (
             <div className="flex flex-col items-center py-4 text-center">
               <span className="grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-600">

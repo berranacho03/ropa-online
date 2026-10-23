@@ -80,7 +80,7 @@ function Perfil({ tienda }: { tienda: Tienda }) {
         }
       />
       <PageBody>
-        <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
           <div className="space-y-6">
             <Panel titulo="Datos de la tienda">
               <div className="grid gap-4 sm:grid-cols-2">

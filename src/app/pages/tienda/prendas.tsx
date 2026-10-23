@@ -15,12 +15,15 @@ import {
   conMuchasDevoluciones,
   statsPorPrenda,
   useDatosTienda,
+  type StatsPrenda,
 } from "../../components/tienda/comun";
+import { Buscador, CampoFiltro, DatoTarjeta, DatosTarjeta, FiltrosMovil, LISTA_TARJETAS } from "../../components/tienda/movil";
 import { useStore } from "../../lib/store";
 import { CATEGORIAS, nombreCategoria } from "../../lib/talles";
 import { tablaCompleta, type EstadoPrenda, type Prenda } from "../../data/prendas";
 import type { Tienda } from "../../data/tiendas";
 import { money, num, pct } from "../../lib/format";
+import { cn } from "../../components/ui/utils";
 
 export function TiendaPrendas() {
   return <ConTienda titulo="Mis prendas">{(t) => <Prendas tienda={t} />}</ConTienda>;
@@ -72,6 +75,35 @@ function Prendas({ tienda }: { tienda: Tienda }) {
     setEditando(null);
   };
 
+  const selCat = (cls: string) => (
+    <Select value={cat} onValueChange={setCat}>
+      <SelectTrigger className={cls}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="todas">Todas las categorías</SelectItem>
+        {CATEGORIAS.map((c) => (
+          <SelectItem key={c.id} value={c.id}>
+            {c.plural}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+  const selEstado = (cls: string) => (
+    <Select value={estado} onValueChange={(v) => setEstado(v as typeof estado)}>
+      <SelectTrigger className={cls}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="todas">Todos los estados</SelectItem>
+        <SelectItem value="publicada">Publicadas</SelectItem>
+        <SelectItem value="incompleta">Tabla incompleta</SelectItem>
+        <SelectItem value="pausada">Pausadas</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
   return (
     <>
       <PageHeader
@@ -107,38 +139,26 @@ function Prendas({ tienda }: { tienda: Tienda }) {
           bodyClassName="p-0"
           titulo={`${num(filtradas.length)} prendas`}
           acciones={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar prenda" className="h-9 w-48 pl-8" />
-              </div>
-              <Select value={cat} onValueChange={setCat}>
-                <SelectTrigger className="h-9 w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las categorías</SelectItem>
-                  {CATEGORIAS.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.plural}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={estado} onValueChange={(v) => setEstado(v as typeof estado)}>
-                <SelectTrigger className="h-9 w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todos los estados</SelectItem>
-                  <SelectItem value="publicada">Publicadas</SelectItem>
-                  <SelectItem value="incompleta">Tabla incompleta</SelectItem>
-                  <SelectItem value="pausada">Pausadas</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="hidden flex-wrap items-center gap-2 md:flex">
+              <Buscador valor={q} onCambio={setQ} className="w-48" />
+              {selCat("w-48")}
+              {selEstado("w-48")}
             </div>
           }
         >
+          {prendas.length > 0 && (
+            <FiltrosMovil
+              busqueda={<Buscador valor={q} onCambio={setQ} />}
+              activos={Number(cat !== "todas") + Number(estado !== "todas")}
+              onLimpiar={() => {
+                setCat("todas");
+                setEstado("todas");
+              }}
+            >
+              <CampoFiltro etiqueta="Categoría">{selCat("h-10 w-full")}</CampoFiltro>
+              <CampoFiltro etiqueta="Estado">{selEstado("h-10 w-full")}</CampoFiltro>
+            </FiltrosMovil>
+          )}
           {prendas.length === 0 ? (
             <Vacio
               icono={Shirt}
@@ -153,6 +173,22 @@ function Prendas({ tienda }: { tienda: Tienda }) {
           ) : filtradas.length === 0 ? (
             <Vacio icono={Search} titulo="Ninguna prenda con esos filtros" />
           ) : (
+            <>
+            <ul className={LISTA_TARJETAS}>
+              {filtradas.map((p) => (
+                <TarjetaPrenda
+                  key={p.id}
+                  p={p}
+                  s={stats.get(p.id)!}
+                  alternar={alternar}
+                  editarPrecio={() => {
+                    setEditando(p);
+                    setPrecio(String(p.precio));
+                  }}
+                />
+              ))}
+            </ul>
+            <div className="hidden xl:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -174,7 +210,7 @@ function Prendas({ tienda }: { tienda: Tienda }) {
                   const alerta = conMuchasDevoluciones(s);
                   return (
                     <TableRow key={p.id}>
-                      <TableCell className="pl-4">
+                      <TableCell className="min-w-[11rem] whitespace-normal pl-4">
                         <div className="flex items-center gap-3">
                           <PrendaIlustracion prenda={p} className="h-14 w-11 shrink-0 rounded-md" />
                           <div className="min-w-0">
@@ -189,24 +225,7 @@ function Prendas({ tienda }: { tienda: Tienda }) {
                         <ChipEstadoPrenda estado={p.estado} />
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {p.talles.map((t) => {
-                            const ok = Object.keys(p.tabla[t] ?? {}).length > 0;
-                            return (
-                              <span
-                                key={t}
-                                title={ok ? undefined : "Sin medidas"}
-                                className={
-                                  ok
-                                    ? "rounded border border-border px-1.5 text-xs"
-                                    : "rounded border border-dashed border-amber-400 px-1.5 text-xs text-amber-700"
-                                }
-                              >
-                                {t}
-                              </span>
-                            );
-                          })}
-                        </div>
+                        <TallesChips p={p} className="max-w-[9.5rem]" />
                       </TableCell>
                       <TableCell className="tabular text-right">
                         <button
@@ -259,6 +278,8 @@ function Prendas({ tienda }: { tienda: Tienda }) {
                 })}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </Panel>
         <p className="text-xs text-muted-foreground">
@@ -267,7 +288,7 @@ function Prendas({ tienda }: { tienda: Tienda }) {
       </PageBody>
 
       <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="portal-tienda sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar precio</DialogTitle>
             <DialogDescription>{editando?.nombre}. El cambio se ve en la app al instante.</DialogDescription>
@@ -292,5 +313,107 @@ function Prendas({ tienda }: { tienda: Tienda }) {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+
+function TallesChips({ p, className }: { p: Prenda; className?: string }) {
+  return (
+    <div className={cn("flex flex-wrap gap-1", className)}>
+      {p.talles.map((t) => {
+        const ok = Object.keys(p.tabla[t] ?? {}).length > 0;
+        return (
+          <span
+            key={t}
+            title={ok ? undefined : "Sin medidas"}
+            className={
+              ok ? "rounded border border-border px-1.5 text-xs" : "rounded border border-dashed border-amber-400 px-1.5 text-xs text-amber-700"
+            }
+          >
+            {t}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Una prenda en el celular: foto, nombre, estado y precio arriba; el embudo en una grilla y las acciones abajo. */
+function TarjetaPrenda({
+  p,
+  s,
+  alternar,
+  editarPrecio,
+}: {
+  p: Prenda;
+  s: StatsPrenda;
+  alternar: (p: Prenda) => void;
+  editarPrecio: () => void;
+}) {
+  const completa = tablaCompleta(p);
+  const alerta = conMuchasDevoluciones(s);
+  return (
+    <li className="px-4 py-4">
+      <div className="flex gap-3">
+        <PrendaIlustracion prenda={p} className="h-[4.5rem] w-14 shrink-0 rounded-md" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-medium leading-snug">{p.nombre}</p>
+            <p className="tabular shrink-0 font-semibold">{money(p.precio)}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {nombreCategoria(p.categoria)} · {p.colorNombre} · calce {p.calce}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <ChipEstadoPrenda estado={p.estado} />
+            <TallesChips p={p} />
+          </div>
+        </div>
+      </div>
+      <DatosTarjeta className="mt-3 grid-cols-4 gap-x-2 rounded-lg bg-muted/50 px-3 py-2.5">
+        <DatoTarjeta etiqueta="Recom.">
+          <span className="tabular">{num(s.recomendada)}</span>
+        </DatoTarjeta>
+        <DatoTarjeta etiqueta="Probada">
+          <span className="tabular">{num(s.probada)}</span>
+        </DatoTarjeta>
+        <DatoTarjeta etiqueta="Comprada">
+          <span className="tabular">{num(s.comprada)}</span>
+        </DatoTarjeta>
+        <DatoTarjeta etiqueta="Devuelta">
+          <span className={cn("tabular", alerta && "font-semibold text-amber-700")}>{num(s.devuelta)}</span>
+        </DatoTarjeta>
+      </DatosTarjeta>
+      {alerta && (
+        <Link
+          to={`/tienda/talles?prenda=${p.id}`}
+          className="mt-2 flex items-center gap-1.5 text-xs font-medium text-amber-700"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {pct(s.pctDevTalle)} devuelta por talle: revisá la tabla
+        </Link>
+      )}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button size="sm" variant="outline" className="h-9" onClick={editarPrecio}>
+          <Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar precio
+        </Button>
+        {completa ? (
+          <Button size="sm" variant="outline" className="h-9" onClick={() => alternar(p)}>
+            {p.estado === "publicada" ? (
+              <>
+                <Pause className="mr-1.5 h-3.5 w-3.5" /> Pausar
+              </>
+            ) : (
+              <>
+                <Play className="mr-1.5 h-3.5 w-3.5" /> Publicar
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button size="sm" asChild className="h-9">
+            <Link to={`/tienda/talles?prenda=${p.id}`}>Completar tabla</Link>
+          </Button>
+        )}
+      </div>
+    </li>
   );
 }

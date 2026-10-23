@@ -62,7 +62,7 @@ export function ComprarDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => paso === "confirmar" && onOpenChange(v)}>
-      <DialogContent className="max-w-[360px] gap-0 rounded-3xl p-0 sm:max-w-[360px]">
+      <DialogContent className="max-w-[min(360px,calc(100%-2rem))] gap-0 rounded-3xl p-0 sm:max-w-[360px]">
         {paso === "yendo" ? (
           <div className="flex flex-col items-center px-6 py-12 text-center">
             <span

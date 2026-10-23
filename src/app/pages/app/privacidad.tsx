@@ -174,7 +174,7 @@ export function Privacidad() {
       )}
 
       <AlertDialog open={borrarFoto} onOpenChange={setBorrarFoto}>
-        <AlertDialogContent className="max-w-[340px] rounded-3xl">
+        <AlertDialogContent className="max-w-[min(340px,calc(100%-2rem))] rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Borrar tu foto?</AlertDialogTitle>
             <AlertDialogDescription>Se elimina al instante. Para usar el probador con foto vas a tener que subir otra.</AlertDialogDescription>
@@ -197,7 +197,7 @@ export function Privacidad() {
       </AlertDialog>
 
       <AlertDialog open={borrarCuenta} onOpenChange={setBorrarCuenta}>
-        <AlertDialogContent className="max-w-[340px] rounded-3xl">
+        <AlertDialogContent className="max-w-[min(340px,calc(100%-2rem))] rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar tu cuenta?</AlertDialogTitle>
             <AlertDialogDescription>

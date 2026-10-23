@@ -56,6 +56,13 @@ function Soporte({ tienda }: { tienda: Tienda }) {
   const [texto, setTexto] = useState("");
   const [respuesta, setRespuesta] = useState("");
   const fin = useRef<HTMLDivElement>(null);
+  const refHilo = useRef<HTMLDivElement>(null);
+  // En el celular el hilo queda abajo de la lista: al elegir uno, lo llevamos ahí.
+  const elegir = (id: string) => {
+    setSel(id);
+    if (window.matchMedia("(max-width: 1023px)").matches)
+      setTimeout(() => refHilo.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   useEffect(() => {
     fin.current?.scrollIntoView({ block: "end" });
@@ -98,13 +105,13 @@ function Soporte({ tienda }: { tienda: Tienda }) {
         titulo="Soporte"
         bajada="Escribinos por cualquier duda con tu catálogo, tus tablas o tus comisiones. Respondemos 24/7."
         acciones={
-          <Button onClick={() => setSel("nuevo")}>
+          <Button onClick={() => elegir("nuevo")}>
             <MessageSquarePlus className="mr-2 h-4 w-4" /> Nueva consulta
           </Button>
         }
       />
       <PageBody>
-        <div className="grid gap-6 lg:grid-cols-[20rem_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[20rem_1fr]">
           <Panel titulo="Tus consultas" bodyClassName="p-0" className="self-start">
             {mios.length === 0 ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">Todavía no nos escribiste.</p>
@@ -113,7 +120,7 @@ function Soporte({ tienda }: { tienda: Tienda }) {
                 {mios.map((t) => (
                   <li key={t.id}>
                     <button
-                      onClick={() => setSel(t.id)}
+                      onClick={() => elegir(t.id)}
                       className={cn("w-full px-4 py-3 text-left transition-colors hover:bg-muted/60", actual?.id === t.id && "bg-[var(--brand-50)]")}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -130,6 +137,7 @@ function Soporte({ tienda }: { tienda: Tienda }) {
             )}
           </Panel>
 
+          <div ref={refHilo} className="min-w-0 scroll-mt-4">
           {modoNuevo ? (
             <Panel titulo="Nueva consulta" bajada="Contanos qué pasa y te respondemos en este mismo hilo.">
               <div className="space-y-4">
@@ -237,6 +245,7 @@ function Soporte({ tienda }: { tienda: Tienda }) {
               <Vacio icono={LifeBuoy} titulo="Elegí una consulta" />
             </Panel>
           )}
+          </div>
         </div>
       </PageBody>
     </>

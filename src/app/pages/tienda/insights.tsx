@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { BarChart3, HelpCircle, PackageOpen, Ruler, Users } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Barra, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { PrendaIlustracion } from "../../components/figura/prenda-ilustracion";
 import { C_GRILLA, C_SERIE, ConTienda, TICK, TOOLTIP_ESTILO, useDatosTienda } from "../../components/tienda/comun";
+import { LISTA_TARJETAS } from "../../components/tienda/movil";
 import { useStore } from "../../lib/store";
 import { recomendar, tablaPara } from "../../lib/talles";
 import { compatible } from "../../data/seed";
@@ -96,6 +97,7 @@ function Insights({ tienda }: { tienda: Tienda }) {
 
   const [sel, setSel] = useState<string | undefined>();
   const [pedido, setPedido] = useState("100");
+  const refGrafico = useRef<HTMLDivElement>(null);
   const actual = analisis.find((a) => a.prenda.id === sel) ?? analisis[0];
 
   if (analisis.length === 0)
@@ -153,12 +155,13 @@ function Insights({ tienda }: { tienda: Tienda }) {
           />
         </div>
 
+        <div ref={refGrafico} className="scroll-mt-4">
         <Panel
           titulo="Qué talles se recomiendan"
           bajada={`${nombreCompleto(actual.prenda)} · ${num(actual.usuarios)} usuarios compatibles`}
           acciones={
             <Select value={actual.prenda.id} onValueChange={setSel}>
-              <SelectTrigger className="h-9 w-64">
+              <SelectTrigger className="h-9 w-[min(16rem,calc(100vw-4.5rem))]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -171,7 +174,7 @@ function Insights({ tienda }: { tienda: Tienda }) {
             </Select>
           }
         >
-          <div className="grid gap-6 lg:grid-cols-[7rem_1fr_16rem]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[7rem_1fr_16rem]">
             <PrendaIlustracion prenda={actual.prenda} className="hidden aspect-[4/5] rounded-lg lg:flex" />
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={actual.dist} margin={{ top: 20, right: 8, left: -16, bottom: 0 }}>
@@ -209,13 +212,46 @@ function Insights({ tienda }: { tienda: Tienda }) {
           </div>
         </Panel>
 
-        <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <Panel titulo="Dónde dudan más los usuarios" bajada={`Confianza media de la recomendación y % de usuarios con menos de ${DUDA} %`} bodyClassName="p-0">
+            <ul className={LISTA_TARJETAS}>
+              {dudosas.map((a) => (
+                <li key={a.prenda.id}>
+                  <button
+                    onClick={() => {
+                      setSel(a.prenda.id);
+                      setTimeout(() => refGrafico.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                    }}
+                    className={cn("flex w-full gap-3 px-4 py-3 text-left", a.prenda.id === actual.prenda.id && "bg-[var(--brand-50)]")}
+                  >
+                    <PrendaIlustracion prenda={a.prenda} className="h-12 w-10 shrink-0 rounded-md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-medium leading-snug">{nombreCompleto(a.prenda)}</p>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          más pedido <span className="text-sm font-semibold text-foreground">{a.top}</span>
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 text-xs">
+                        <Barra valor={a.confMedia} max={100} className="flex-1" />
+                        <span className="tabular shrink-0">{pct(a.confMedia)} confianza</span>
+                      </div>
+                      <p className={cn("mt-0.5 text-xs text-muted-foreground", a.pctDuda >= 40 && "font-semibold text-amber-700")}>
+                        Dudan {pct(a.pctDuda)}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden xl:block">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-4">Prenda</TableHead>
-                  <TableHead>Más recomendado</TableHead>
+                  <TableHead className="whitespace-normal leading-tight">Más recomendado</TableHead>
                   <TableHead className="w-40">Confianza media</TableHead>
                   <TableHead className="pr-4 text-right">Dudan</TableHead>
                 </TableRow>
@@ -223,7 +259,7 @@ function Insights({ tienda }: { tienda: Tienda }) {
               <TableBody>
                 {dudosas.map((a) => (
                   <TableRow key={a.prenda.id} className="cursor-pointer" onClick={() => setSel(a.prenda.id)}>
-                    <TableCell className="pl-4">
+                    <TableCell className="min-w-[10rem] whitespace-normal pl-4">
                       <div className="flex items-center gap-2.5">
                         <PrendaIlustracion prenda={a.prenda} className="h-9 w-7 shrink-0 rounded" />
                         <span className="font-medium">{nombreCompleto(a.prenda)}</span>
@@ -241,6 +277,7 @@ function Insights({ tienda }: { tienda: Tienda }) {
                 ))}
               </TableBody>
             </Table>
+            </div>
             <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
               Cuando la confianza es baja, la persona está entre dos talles. Rangos más finos en la tabla, o el probador virtual, ayudan a decidir.
             </p>

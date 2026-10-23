@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { AlertTriangle, ArrowDownUp, Copy, Ruler, Save, Undo2, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, ChevronsUpDown, Copy, Ruler, Save, Undo2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../../components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { PrendaIlustracion } from "../../components/figura/prenda-ilustracion";
@@ -81,9 +82,12 @@ function Talles({ tienda }: { tienda: Tienda }) {
   const [borrador, setBorrador] = useState<Borrador>({});
   const [aplicar, setAplicar] = useState(false);
   const [destinos, setDestinos] = useState<Set<string>>(new Set());
+  const [talleSel, setTalleSel] = useState<string | undefined>();
+  const [elegirAbierto, setElegirAbierto] = useState(false);
 
   useEffect(() => {
     if (prenda) setBorrador(aBorrador(prenda));
+    setTalleSel(undefined);
     // Sólo al cambiar de prenda: no pisar lo que se está editando.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prenda?.id]);
@@ -108,6 +112,7 @@ function Talles({ tienda }: { tienda: Tienda }) {
     );
 
   const zonas = Object.keys(PESOS[prenda.categoria]) as Zona[];
+  const muchasZonas = zonas.length > 3;
   const tablaNueva = aTabla(borrador);
   const original = JSON.stringify(aBorrador(prenda));
   const cambiado = JSON.stringify(borrador) !== original;
@@ -193,6 +198,53 @@ function Talles({ tienda }: { tienda: Tienda }) {
     setDestinos(new Set());
   };
 
+  const lista = (alto: string) => (
+  <ul className={cn("divide-y divide-border overflow-y-auto", alto)}>
+    {orden.map((p) => {
+      const st = stats.get(p.id);
+      const sel = p.id === prenda.id;
+      return (
+        <li key={p.id}>
+          <button
+            onClick={() => {
+              setParams({ prenda: p.id }, { replace: true });
+              setElegirAbierto(false);
+            }}
+            className={cn(
+              "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/60",
+              sel && "bg-[var(--brand-50)]"
+            )}
+          >
+            <PrendaIlustracion prenda={p} className="h-11 w-9 shrink-0 rounded" />
+            <div className="min-w-0 flex-1">
+              <p className={cn("truncate text-sm", sel && "font-medium text-[var(--brand-700)]")}>{nombreCompleto(p)}</p>
+              <p className="text-xs text-muted-foreground">
+                {nombreCategoria(p.categoria)} · {p.talles.join(" ")}
+              </p>
+            </div>
+            {!tablaCompleta(p) ? (
+              <span title="Tabla incompleta" className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+            ) : conMuchasDevoluciones(st) ? (
+              <span title={`${pct(st!.pctDevTalle)} devuelta por talle`}>
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+              </span>
+            ) : null}
+          </button>
+        </li>
+      );
+    })}
+  </ul>
+  );
+
+  const estadoCelda = (t: string, z: Zona) => {
+    const par = borrador[t]?.[z] ?? ["", ""];
+    const vacia = par[0] === "" || par[1] === "";
+    const invertida = !vacia && Number(par[1].replace(",", ".")) <= Number(par[0].replace(",", "."));
+    return { par, vacia, invertida };
+  };
+  const talleActivo = talleSel && prenda.talles.includes(talleSel) ? talleSel : prenda.talles[0];
+  const atencion = prendas.filter((p) => !tablaCompleta(p) || conMuchasDevoluciones(stats.get(p.id))).length;
+
   return (
     <>
       <PageHeader
@@ -200,56 +252,33 @@ function Talles({ tienda }: { tienda: Tienda }) {
         bajada="Para cada talle, el rango de medidas del cuerpo que le queda bien (en cm). Es lo que usa la app para recomendar: si está mal cargada, se nota en las devoluciones."
       />
       <PageBody>
-        <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-          <Panel titulo={`${num(prendas.length)} prendas`} bodyClassName="p-0" className="self-start">
-            <ul className="max-h-[70vh] divide-y divide-border overflow-y-auto">
-              {orden.map((p) => {
-                const st = stats.get(p.id);
-                const sel = p.id === prenda.id;
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => setParams({ prenda: p.id }, { replace: true })}
-                      className={cn(
-                        "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/60",
-                        sel && "bg-[var(--brand-50)]"
-                      )}
-                    >
-                      <PrendaIlustracion prenda={p} className="h-11 w-9 shrink-0 rounded" />
-                      <div className="min-w-0 flex-1">
-                        <p className={cn("truncate text-sm", sel && "font-medium text-[var(--brand-700)]")}>{nombreCompleto(p)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {nombreCategoria(p.categoria)} · {p.talles.join(" ")}
-                        </p>
-                      </div>
-                      {!tablaCompleta(p) ? (
-                        <span title="Tabla incompleta" className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
-                      ) : conMuchasDevoluciones(st) ? (
-                        <span title={`${pct(st!.pctDevTalle)} devuelta por talle`}>
-                          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[18rem_1fr]">
+          <Panel titulo={`${num(prendas.length)} prendas`} bodyClassName="p-0" className="hidden self-start lg:block">
+            {lista("max-h-[70vh]")}
           </Panel>
 
           <div className="min-w-0 space-y-4">
+            <Button variant="outline" className="h-11 w-full justify-between lg:hidden" onClick={() => setElegirAbierto(true)}>
+              <span className="truncate">
+                Cambiar de prenda <span className="text-muted-foreground">· {num(prendas.length)}</span>
+                {atencion > 0 && <span className="text-amber-700"> · {num(atencion)} para revisar</span>}
+              </span>
+              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-60" />
+            </Button>
             <Panel>
               <div className="flex flex-wrap items-center gap-4">
                 <PrendaIlustracion prenda={prenda} className="h-20 w-16 shrink-0 rounded-lg" />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 basis-52">
                   <p className="text-lg font-semibold">{nombreCompleto(prenda)}</p>
                   <p className="text-sm text-muted-foreground">
                     {nombreCategoria(prenda.categoria)} · calce {prenda.calce} · {num(s.comprada)} ventas, {num(s.devTalle)} devueltas por talle
                   </p>
                   <ChipEstadoPrenda estado={prenda.estado} className="mt-1.5" />
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                   <Button variant="outline" size="sm" onClick={completarVacios} disabled={vacias.length === 0}>
-                    <Wand2 className="mr-1.5 h-3.5 w-3.5" /> Completar con plantilla
+                    <Wand2 className="mr-1.5 h-3.5 w-3.5" /> <span className="sm:hidden">Completar vacíos</span>
+                    <span className="hidden sm:inline">Completar con plantilla</span>
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => setAplicar(true)} disabled={hermanas.length === 0}>
                     <Copy className="mr-1.5 h-3.5 w-3.5" /> Aplicar a varias
@@ -278,9 +307,98 @@ function Talles({ tienda }: { tienda: Tienda }) {
             <Panel
               titulo="Medidas del cuerpo por talle"
               bajada="Mínimo y máximo de cada zona, en centímetros. Las celdas vacías no se pueden recomendar."
-              bodyClassName="p-0"
+              bodyClassName="p-0 @container"
             >
-              <div className="overflow-x-auto">
+              {/* Tarjeta por talle cuando no entra la tabla completa (depende del ancho del panel y de cuántas zonas tiene la prenda). */}
+              <div className={muchasZonas ? "@min-[40rem]:hidden" : "@min-[36rem]:hidden"}>
+                <div role="tablist" aria-label="Talles" className="flex flex-wrap gap-1.5 border-b border-border p-3">
+                  {prenda.talles.map((t) => {
+                    const falta = zonas.some((z) => estadoCelda(t, z).vacia);
+                    const mal = zonas.some((z) => estadoCelda(t, z).invertida);
+                    const act = t === talleActivo;
+                    return (
+                      <button
+                        key={t}
+                        role="tab"
+                        aria-selected={act}
+                        onClick={() => setTalleSel(t)}
+                        className={cn(
+                          "relative h-10 min-w-12 rounded-lg border px-3 text-sm font-semibold transition-colors",
+                          act ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-border bg-card text-foreground"
+                        )}
+                      >
+                        {t}
+                        {(falta || mal) && (
+                          <span
+                            className={cn(
+                              "absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ring-2 ring-card",
+                              mal ? "bg-red-500" : "bg-amber-500"
+                            )}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {talleActivo && (
+                  <div className="p-4">
+                    <div className="mb-3 flex items-baseline justify-between gap-3">
+                      <p className="font-display text-2xl font-semibold">Talle {talleActivo}</p>
+                      {(() => {
+                        const d = porTalle(talleActivo);
+                        const malo = d.n >= 2 && d.dev / d.n >= 0.34;
+                        return (
+                          <p className={cn("text-right text-xs text-muted-foreground", malo && "font-semibold text-amber-700")}>
+                            {d.n === 0 ? "Sin ventas" : `${num(d.n)} vendidas · ${num(d.dev)} dev.`}
+                            {(d.chico > 0 || d.grande > 0) && (
+                              <span className="block font-normal text-muted-foreground">
+                                {d.chico > 0 && `${d.chico} chico`}
+                                {d.chico > 0 && d.grande > 0 && " · "}
+                                {d.grande > 0 && `${d.grande} grande`}
+                              </span>
+                            )}
+                          </p>
+                        );
+                      })()}
+                    </div>
+                    <ul className="space-y-2.5">
+                      {zonas.map((z) => {
+                        const { par, vacia, invertida } = estadoCelda(talleActivo, z);
+                        return (
+                          <li key={z} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium">{NOMBRE_ZONA[z]}</p>
+                              <p className={cn("text-xs text-muted-foreground", vacia && "text-amber-700", invertida && "text-red-600")}>
+                                {invertida ? "El máximo tiene que ser mayor" : vacia ? "Falta completar" : z === "altura" ? "estatura, cm" : "cm"}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              {[0, 1].map((k) => (
+                                <span key={k} className="contents">
+                                  {k === 1 && <span className="text-muted-foreground">–</span>}
+                                  <Input
+                                    inputMode="decimal"
+                                    aria-label={`${talleActivo} ${NOMBRE_ZONA[z]} ${k ? "máximo" : "mínimo"}`}
+                                    value={par[k]}
+                                    placeholder={k ? "máx" : "mín"}
+                                    onChange={(e) => setCelda(talleActivo, z, k as 0 | 1, e.target.value)}
+                                    className={cn(
+                                      "tabular h-11 w-[4.25rem] px-1 text-center text-base",
+                                      vacia && "border-dashed border-amber-400 bg-amber-50/50",
+                                      invertida && "border-red-400"
+                                    )}
+                                  />
+                                </span>
+                              ))}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className={cn("hidden", muchasZonas ? "@min-[40rem]:block" : "@min-[36rem]:block")}>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -291,7 +409,7 @@ function Talles({ tienda }: { tienda: Tienda }) {
                           {z === "altura" ? " (estatura)" : ""}
                         </TableHead>
                       ))}
-                      <TableHead className="pr-4 text-right">Vendidas · devueltas</TableHead>
+                      <TableHead className={cn("whitespace-normal pr-4 text-right leading-tight", muchasZonas ? "w-24" : "w-28")}>Vendidas · devueltas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -317,7 +435,8 @@ function Talles({ tienda }: { tienda: Tienda }) {
                                       placeholder={k ? "máx" : "mín"}
                                       onChange={(e) => setCelda(t, z, k as 0 | 1, e.target.value)}
                                       className={cn(
-                                        "tabular h-8 w-16 px-2 text-center",
+                                        "tabular h-8 px-1.5 text-center",
+                                        muchasZonas ? "w-12" : "w-14",
                                         vacia && "border-dashed border-amber-400 bg-amber-50/50",
                                         invertida && "border-red-400"
                                       )}
@@ -327,7 +446,7 @@ function Talles({ tienda }: { tienda: Tienda }) {
                               </TableCell>
                             );
                           })}
-                          <TableCell className="pr-4 text-right text-sm">
+                          <TableCell className="whitespace-normal pr-4 text-right text-sm">
                             {d.n === 0 ? (
                               <span className="text-muted-foreground">—</span>
                             ) : (
@@ -349,7 +468,12 @@ function Talles({ tienda }: { tienda: Tienda }) {
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <div
+                className={cn(
+                  "flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t border-border bg-card px-4 py-3",
+                  cambiado && "sticky bottom-0 z-10 shadow-[0_-6px_16px_-10px_rgba(0,0,0,0.25)]"
+                )}
+              >
                 <p className="text-sm text-muted-foreground">
                   {vacias.length > 0 ? (
                     <span className="text-amber-700">Faltan medidas en {vacias.join(", ")}.</span>
@@ -358,7 +482,7 @@ function Talles({ tienda }: { tienda: Tienda }) {
                   )}{" "}
                   {cambiado && <span className="font-medium text-foreground">Hay cambios sin guardar.</span>}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex w-full gap-2 sm:w-auto [&>*]:flex-1 sm:[&>*]:flex-none">
                   <Button variant="ghost" size="sm" disabled={!cambiado} onClick={() => setBorrador(aBorrador(prenda))}>
                     <Undo2 className="mr-1.5 h-3.5 w-3.5" /> Descartar
                   </Button>
@@ -372,8 +496,18 @@ function Talles({ tienda }: { tienda: Tienda }) {
         </div>
       </PageBody>
 
+      <Sheet open={elegirAbierto} onOpenChange={setElegirAbierto}>
+        <SheetContent side="bottom" className="portal-tienda max-h-[85dvh] gap-0 rounded-t-2xl p-0">
+          <SheetHeader className="border-b border-border">
+            <SheetTitle>Elegí una prenda</SheetTitle>
+            <SheetDescription>Primero las que piden atención: tabla incompleta o muchas devoluciones.</SheetDescription>
+          </SheetHeader>
+          {lista("min-h-0 flex-1")}
+        </SheetContent>
+      </Sheet>
+
       <Dialog open={aplicar} onOpenChange={setAplicar}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="portal-tienda sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Aplicar esta tabla a otras prendas</DialogTitle>
             <DialogDescription>

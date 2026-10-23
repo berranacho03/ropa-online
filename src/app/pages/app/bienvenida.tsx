@@ -314,7 +314,7 @@ export function Bienvenida() {
       </div>
 
       <Dialog open={verPolitica} onOpenChange={setVerPolitica}>
-        <DialogContent className="max-w-[360px] rounded-3xl sm:max-w-[360px]">
+        <DialogContent className="max-w-[min(360px,calc(100%-2rem))] rounded-3xl sm:max-w-[360px]">
           <DialogHeader className="text-left">
             <DialogTitle className="font-display">Cómo cuidamos tus datos</DialogTitle>
             <DialogDescription>Resumen de la política de privacidad.</DialogDescription>

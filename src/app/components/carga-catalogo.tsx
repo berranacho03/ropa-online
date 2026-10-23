@@ -469,6 +469,69 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
     setPublicadas(null);
   };
 
+  const ejemploDe = (i: number) =>
+    datos
+      .slice(0, 2)
+      .map((d) => d[i])
+      .filter((x) => x && x.replace(/\|/g, "").trim())
+      .join(" · ") || "—";
+
+  const selectorCampo = (i: number, cls: string) => {
+    const v = mapeo[i] ?? IGNORAR;
+    const dup = v !== IGNORAR && duplicados.includes(v);
+    return (
+      <Select value={v} onValueChange={(nv) => setMapeo({ ...mapeo, [i]: nv })}>
+        <SelectTrigger className={cn(cls, dup && "border-red-400", v === IGNORAR && "text-muted-foreground")}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={IGNORAR}>No importar</SelectItem>
+          {CAMPOS.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.label}
+              {c.requerido ? " *" : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
+  const tallesFila = (f: (typeof filas)[number]) => (
+    <div className="flex flex-wrap gap-1">
+      {f.talles.map((t) => (
+        <span
+          key={t}
+          className={cn("rounded border px-1.5 text-xs", f.sinMedidas.includes(t) ? "border-dashed border-amber-400 text-amber-700" : "border-border")}
+        >
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+
+  const estadoFila = (f: (typeof filas)[number], i: number) => (
+    <>
+      {f.errores.length > 0 ? (
+        <p className="flex items-start gap-1.5 text-sm text-red-700">
+          <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {f.errores.join(" · ")}
+        </p>
+      ) : f.sinMedidas.length > 0 ? (
+        <p className="flex items-start gap-1.5 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {f.sinMedidas.length === f.talles.length ? "Sin medidas" : `Sin medidas en ${f.sinMedidas.join(", ")}`}
+        </p>
+      ) : (
+        <p className="flex items-center gap-1.5 text-sm text-[var(--brand-700)]">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {conPlantilla.has(i) ? "Completada con la plantilla" : "Lista"}
+        </p>
+      )}
+      {f.avisos.length > 0 && <p className="mt-0.5 text-xs text-muted-foreground">{f.avisos.join(" · ")}</p>}
+    </>
+  );
+
   const puedeSeguir =
     paso === 0 ? celdas.length > 1 : paso === 1 ? faltanRequeridos.length === 0 && duplicados.length === 0 : paso === 2 ? validas.length > 0 : true;
 
@@ -484,8 +547,10 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
               <button
                 disabled={i > paso || !!publicadas}
                 onClick={() => setPaso(i)}
+                aria-label={p}
                 className={cn(
-                  "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+                  "flex items-center gap-2 rounded-full border px-1.5 py-1.5 text-sm transition-colors sm:px-3",
+                  actual && "px-3",
                   actual && "border-[var(--brand)] bg-[var(--brand-50)] font-medium text-[var(--brand-700)]",
                   hecho && "border-transparent bg-[var(--brand-100)] text-[var(--brand-700)]",
                   !actual && !hecho && "border-border text-muted-foreground"
@@ -499,7 +564,7 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
                 >
                   {hecho ? <Check className="h-3 w-3" /> : i + 1}
                 </span>
-                {p}
+                <span className={cn(!actual && "sr-only sm:not-sr-only")}>{p}</span>
               </button>
               {i < PASOS.length - 1 && <span className="hidden h-px w-6 bg-border sm:block" />}
             </li>
@@ -509,7 +574,7 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
 
       {/* 1 · Archivo */}
       {paso === 0 && (
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -581,6 +646,18 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
           bajada={`${archivo} · ${num(datos.length)} filas. Las detectamos por el nombre: revisá que estén bien.`}
           bodyClassName="p-0"
         >
+          <ul className="divide-y divide-border md:hidden">
+            {cabecera.map((h, i) => (
+              <li key={i} className="space-y-2 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{h || <span className="text-muted-foreground">(sin nombre)</span>}</p>
+                  <p className="truncate text-xs text-muted-foreground">Ej.: {ejemploDe(i)}</p>
+                </div>
+                {selectorCampo(i, "h-10 w-full")}
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -590,40 +667,16 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cabecera.map((h, i) => {
-                const v = mapeo[i] ?? IGNORAR;
-                const dup = v !== IGNORAR && duplicados.includes(v);
-                return (
+              {cabecera.map((h, i) => (
                   <TableRow key={i}>
                     <TableCell className="pl-4 font-medium">{h || <span className="text-muted-foreground">(sin nombre)</span>}</TableCell>
-                    <TableCell className="max-w-[18rem] truncate text-xs text-muted-foreground">
-                      {datos
-                        .slice(0, 2)
-                        .map((d) => d[i])
-                        .filter((x) => x && x.replace(/\|/g, "").trim())
-                        .join(" · ") || "—"}
-                    </TableCell>
-                    <TableCell className="pr-4">
-                      <Select value={v} onValueChange={(nv) => setMapeo({ ...mapeo, [i]: nv })}>
-                        <SelectTrigger className={cn("h-9", dup && "border-red-400", v === IGNORAR && "text-muted-foreground")}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={IGNORAR}>No importar</SelectItem>
-                          {CAMPOS.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.label}
-                              {c.requerido ? " *" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
+                    <TableCell className="max-w-[18rem] truncate text-xs text-muted-foreground">{ejemploDe(i)}</TableCell>
+                    <TableCell className="pr-4">{selectorCampo(i, "h-9")}</TableCell>
                   </TableRow>
-                );
-              })}
+                ))}
             </TableBody>
           </Table>
+          </div>
           {(faltanRequeridos.length > 0 || duplicados.length > 0) && (
             <div className="flex items-start gap-2 border-t border-border bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -639,7 +692,7 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
       {/* 3 · Validación */}
       {paso === 2 && (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <Resumen icono={CheckCircle2} tono="ok" valor={validas.length - incompletas.length} texto="listas, con su tabla completa" />
             <Resumen icono={AlertTriangle} tono="aviso" valor={incompletas.length} texto="con talles sin medidas" />
             <Resumen icono={XCircle} tono="error" valor={conError.length} texto="con errores: no se cargan" />
@@ -657,6 +710,30 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
             </div>
           )}
           <Panel bodyClassName="p-0" titulo="Fila por fila">
+            <ul className="divide-y divide-border md:hidden">
+              {filas.map((f, i) => (
+                <li key={i} className={cn("px-4 py-3", f.errores.length > 0 && "bg-red-50/50")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium leading-snug">{f.nombre || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Fila {f.linea} · {f.categoria ? nombreCategoria(f.categoria) : "sin categoría"}
+                        {f.colorNombre ? ` · ${f.colorNombre}` : ""}
+                      </p>
+                    </div>
+                    {f.precio ? <p className="tabular shrink-0 text-sm font-semibold">{money(f.precio)}</p> : null}
+                  </div>
+                  <div className="mt-2">{tallesFila(f)}</div>
+                  <div className="mt-2">{estadoFila(f, i)}</div>
+                  {f.errores.length === 0 && f.sinMedidas.length > 0 && (
+                    <Button size="sm" variant="outline" className="mt-2 h-9 w-full" onClick={() => setConPlantilla(new Set(conPlantilla).add(i))}>
+                      <Wand2 className="mr-1.5 h-3.5 w-3.5" /> Completar con la plantilla
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -680,40 +757,8 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
                       </p>
                     </TableCell>
                     <TableCell>{f.categoria ? nombreCategoria(f.categoria) : "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {f.talles.map((t) => (
-                          <span
-                            key={t}
-                            className={cn(
-                              "rounded border px-1.5 text-xs",
-                              f.sinMedidas.includes(t) ? "border-dashed border-amber-400 text-amber-700" : "border-border"
-                            )}
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-[22rem]">
-                      {f.errores.length > 0 ? (
-                        <p className="flex items-start gap-1.5 text-sm text-red-700">
-                          <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                          {f.errores.join(" · ")}
-                        </p>
-                      ) : f.sinMedidas.length > 0 ? (
-                        <p className="flex items-start gap-1.5 text-sm text-amber-800">
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                          {f.sinMedidas.length === f.talles.length ? "Sin medidas" : `Sin medidas en ${f.sinMedidas.join(", ")}`}
-                        </p>
-                      ) : (
-                        <p className="flex items-center gap-1.5 text-sm text-[var(--brand-700)]">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          {conPlantilla.has(i) ? "Completada con la plantilla" : "Lista"}
-                        </p>
-                      )}
-                      {f.avisos.length > 0 && <p className="mt-0.5 text-xs text-muted-foreground">{f.avisos.join(" · ")}</p>}
-                    </TableCell>
+                    <TableCell>{tallesFila(f)}</TableCell>
+                    <TableCell className="min-w-[10rem] max-w-[22rem] whitespace-normal">{estadoFila(f, i)}</TableCell>
                     <TableCell className="pr-4 text-right">
                       {f.errores.length === 0 && f.sinMedidas.length > 0 && (
                         <Button size="sm" variant="outline" onClick={() => setConPlantilla(new Set(conPlantilla).add(i))}>
@@ -725,6 +770,7 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
                 ))}
               </TableBody>
             </Table>
+            </div>
           </Panel>
           {conError.length > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -746,12 +792,12 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
                   className="aspect-[4/5]"
                 />
                 <div className="space-y-1.5 p-3">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{f.nombre}</p>
+                      <p className="line-clamp-2 text-sm font-medium leading-snug sm:truncate">{f.nombre}</p>
                       <p className="truncate text-xs text-muted-foreground">{tienda?.nombre} · {f.colorNombre}</p>
                     </div>
-                    <p className="tabular text-sm font-semibold">{money(f.precio!)}</p>
+                    <p className="tabular shrink-0 text-sm font-semibold">{money(f.precio!)}</p>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {f.talles.map((t) => (
@@ -763,7 +809,10 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
                   {f.sinMedidas.length > 0 ? (
                     <Chip className="border-amber-200 bg-amber-50 text-amber-800">Tabla incompleta</Chip>
                   ) : (
-                    <Chip className="border-[var(--brand-300)] bg-[var(--brand-50)] text-[var(--brand-700)]">Con recomendación de talle</Chip>
+                    <Chip className="border-[var(--brand-300)] bg-[var(--brand-50)] text-[var(--brand-700)]">
+                      <span className="sm:hidden">Recomienda talle</span>
+                      <span className="hidden sm:inline">Con recomendación de talle</span>
+                    </Chip>
                   )}
                 </div>
               </div>
@@ -846,7 +895,7 @@ export function CargaCatalogo({ tiendaId, onPublicado }: { tiendaId: string; onP
 
       {/* Navegación */}
       {paso > 0 && !publicadas && (
-        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-background pt-4 max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-4 max-md:px-4 max-md:pb-4">
           <Button variant="ghost" onClick={() => setPaso(paso - 1)}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Atrás
           </Button>
@@ -878,11 +927,11 @@ function Resumen({
     error: "text-red-700 bg-red-50",
   }[tono];
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
-      <span className={cn("rounded-lg p-2", c)}>
-        <Icono className="h-5 w-5" />
+    <div className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4">
+      <span className={cn("rounded-lg p-1.5 sm:p-2", c)}>
+        <Icono className="h-4 w-4 sm:h-5 sm:w-5" />
       </span>
-      <div>
+      <div className="min-w-0">
         <p className="tabular text-2xl font-semibold leading-none">{num(valor)}</p>
         <p className="mt-1 text-xs text-muted-foreground">{texto}</p>
       </div>

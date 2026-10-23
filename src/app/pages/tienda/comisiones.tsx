@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
-import { BadgePercent, CheckCircle2, Clock, Receipt, Wallet } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { BadgePercent, CheckCircle2, ChevronRight, Clock, Receipt, Wallet } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Chip, Kpi, PageBody, PageHeader, Panel, Vacio } from "../../components/shell";
 import { C_GRILLA, C_SERIE, C_SERIE_SUAVE, ConTienda, TICK, TOOLTIP_ESTILO, useDatosTienda } from "../../components/tienda/comun";
+import { LISTA_TARJETAS } from "../../components/tienda/movil";
 import { MESES, MES_ACTUAL, comisionDe, mesDe } from "../../data/seed";
 import { nombreCompleto } from "../../data/prendas";
 import type { Tienda } from "../../data/tiendas";
 import { fecha, mesCorto, money, num } from "../../lib/format";
 import { cn } from "../../components/ui/utils";
+import { PrendaIlustracion } from "../../components/figura/prenda-ilustracion";
 
 export function TiendaComisiones() {
   return <ConTienda titulo="Comisiones">{(t) => <Comisiones tienda={t} />}</ConTienda>;
@@ -38,6 +40,12 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
   }, [ventas, tienda.fechaAlta]);
 
   const [mes, setMes] = useState(MES_ACTUAL);
+  const refDetalle = useRef<HTMLDivElement>(null);
+  // En el celular el detalle queda abajo de todo: al elegir un mes, lo llevamos ahí.
+  const elegirMes = (m: string, llevar = false) => {
+    setMes(m);
+    if (llevar) setTimeout(() => refDetalle.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
   const elegida = filas.find((f) => f.mes === mes) ?? filas[0];
   const detalle = ventas.filter((v) => mesDe(v.fecha) === elegida?.mes);
 
@@ -76,8 +84,46 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
           </Panel>
         ) : (
           <>
-            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
               <Panel titulo="Liquidación mensual" bajada="Elegí un mes para ver el detalle venta por venta" bodyClassName="p-0">
+                <ul className="divide-y divide-border xl:hidden">
+                  {filas.map((f) => (
+                    <li key={f.mes}>
+                      <button
+                        onClick={() => elegirMes(f.mes, true)}
+                        className={cn(
+                          "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
+                          f.mes === elegida?.mes && "bg-[var(--brand-50)]"
+                        )}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium capitalize">{mesCorto(f.mes)}</span>
+                            <ChipLiquidacion enCurso={f.enCurso} />
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {num(f.ventas)} ventas · {num(f.devueltas)} devueltas · base {money(f.base)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="tabular font-semibold">{money(f.comision)}</p>
+                          <p className="text-[11px] text-muted-foreground">{tienda.comisionPct} %</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </li>
+                  ))}
+                  <li className="flex items-center justify-between gap-3 bg-muted/50 px-4 py-3 text-sm">
+                    <span className="font-semibold">Total</span>
+                    <span className="text-right">
+                      <span className="tabular block font-semibold">{money(filas.reduce((a, f) => a + f.comision, 0))}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {num(filas.reduce((a, f) => a + f.ventas, 0))} ventas · base {money(vendidoTotal)}
+                      </span>
+                    </span>
+                  </li>
+                </ul>
+                <div className="hidden xl:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -94,7 +140,7 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
                     {filas.map((f) => (
                       <TableRow
                         key={f.mes}
-                        onClick={() => setMes(f.mes)}
+                        onClick={() => elegirMes(f.mes)}
                         className={cn("cursor-pointer", f.mes === elegida?.mes && "bg-[var(--brand-50)] hover:bg-[var(--brand-50)]")}
                       >
                         <TableCell className="pl-4 font-medium capitalize">{mesCorto(f.mes)}</TableCell>
@@ -104,11 +150,7 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
                         <TableCell className="tabular text-right text-muted-foreground">{tienda.comisionPct} %</TableCell>
                         <TableCell className="tabular text-right font-semibold">{money(f.comision)}</TableCell>
                         <TableCell className="pr-4">
-                          {f.enCurso ? (
-                            <Chip className="border-amber-200 bg-amber-50 text-amber-800">En curso</Chip>
-                          ) : (
-                            <Chip className="border-[var(--brand-300)] bg-[var(--brand-50)] text-[var(--brand-700)]">Pagada</Chip>
-                          )}
+                          <ChipLiquidacion enCurso={f.enCurso} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -125,6 +167,7 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
                     </TableRow>
                   </TableFooter>
                 </Table>
+                </div>
               </Panel>
 
               <Panel titulo="Comisión por mes" bajada="El mes en curso, en tono claro">
@@ -144,6 +187,7 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
               </Panel>
             </div>
 
+            <div ref={refDetalle} className="scroll-mt-4">
             <Panel
               titulo={`Detalle de ${elegida ? mesCorto(elegida.mes) : ""}`}
               bajada={`${num(detalle.length)} ventas · ${elegida?.enCurso ? "en curso: puede cambiar hasta el cierre" : "liquidada"}`}
@@ -152,6 +196,42 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
               {detalle.length === 0 ? (
                 <Vacio icono={Receipt} titulo="Sin ventas ese mes" />
               ) : (
+                <>
+                <ul className={LISTA_TARJETAS}>
+                  {detalle.map((v) => {
+                    const p = porId.get(v.prendaId);
+                    const c = comisionDe(v);
+                    return (
+                      <li key={v.id} className="flex gap-3 px-4 py-3">
+                        {p && <PrendaIlustracion prenda={p} className="h-12 w-10 shrink-0 rounded-md" />}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-medium leading-snug">{p ? nombreCompleto(p) : v.prendaId}</p>
+                            <p className={cn("tabular shrink-0 text-sm", c === 0 ? "text-muted-foreground line-through" : "font-semibold")}>
+                              {money(c === 0 ? (v.precio * v.comisionPct) / 100 : c)}
+                            </p>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {fecha(v.fecha)} · talle {v.talle} · {money(v.precio)}
+                          </p>
+                          <p className="mt-0.5 flex items-center justify-between gap-2 text-xs">
+                            {v.estado === "devuelta" ? (
+                              <span className="text-orange-700">Devuelta · no comisiona</span>
+                            ) : (
+                              <span className="text-muted-foreground">Confirmada</span>
+                            )}
+                            <span className="font-mono text-[11px] text-muted-foreground">{v.id}</span>
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/50 px-4 py-3 text-sm font-semibold xl:hidden">
+                  <span>Total {elegida?.enCurso ? "a pagar" : "pagado"}</span>
+                  <span className="tabular">{money(elegida?.comision ?? 0)}</span>
+                </div>
+                <div className="hidden xl:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -198,11 +278,23 @@ function Comisiones({ tienda }: { tienda: Tienda }) {
                     </TableRow>
                   </TableFooter>
                 </Table>
+                </div>
+                </>
               )}
             </Panel>
+            </div>
           </>
         )}
       </PageBody>
     </>
+  );
+}
+
+
+function ChipLiquidacion({ enCurso }: { enCurso: boolean }) {
+  return enCurso ? (
+    <Chip className="border-amber-200 bg-amber-50 text-amber-800">En curso</Chip>
+  ) : (
+    <Chip className="border-[var(--brand-300)] bg-[var(--brand-50)] text-[var(--brand-700)]">Pagada</Chip>
   );
 }
